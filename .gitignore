@@ -3,3 +3,6 @@
 
 # project import info directory
 *.egg-info/
+
+# data file directory
+data/
