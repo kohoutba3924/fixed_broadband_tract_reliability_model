@@ -1,0 +1,34 @@
+[project]
+name = "fixed_broadband_tract_reliability_model"
+version = "0.1.0"
+description = "A data science and machine learning cross-sectional modeling project to predict tract-level broadband reliability."
+requires-python = ">=3.10"
+readme = "README.md"
+authors = [
+    { name = "Brett" }
+]
+dependencies = []
+
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I"]
+ignore = []
+exclude = []
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,3 +1,11 @@
+Metadata-Version: 2.4
+Name: fixed_broadband_tract_reliability_model
+Version: 0.1.0
+Summary: A data science and machine learning cross-sectional modeling project to predict tract-level broadband reliability.
+Author: Brett
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+
 # Fixed Broadband Tract Reliability Model  
 **Status:** *Active Development — Early Stage*
 
