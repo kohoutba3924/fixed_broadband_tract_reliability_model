@@ -1,3 +1,6 @@
+# IDE 
+.vscode/
+
 # virtual environment
 .venv/
 
@@ -6,3 +9,33 @@
 
 # data file directory
 data/
+*.parquet
+*.csv
+*.json
+*.zip
+*.gz
+
+# Python 
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+
+# Jupyter 
+.ipynb_checkpoints/
+
+# ML / modeling artifacts
+*.pkl
+*.joblib
+*.pt
+*.onnx
+*.h5
+*.model
+
+# Cache directories
+.cache/
+.mypy_cache/
+.pytest_cache/
