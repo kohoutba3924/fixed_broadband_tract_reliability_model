@@ -5,8 +5,12 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
-INPUT_PATH = Path("data/processed/ookla_fixed_broadband_service_multi_quarter.parquet")
-OUTPUT_PATH = Path("data/processed/ookla_tract_quarter_target_features.parquet")
+INPUT_PATH = Path(
+    "data/processed/ingestion/ookla_fixed_broadband_service_multi_quarter.parquet"
+)
+OUTPUT_PATH = Path(
+    "data/processed/feature_engineering/ookla_tract_quarter_target_features.parquet"
+)
 
 
 # ---------------------------------------------------------

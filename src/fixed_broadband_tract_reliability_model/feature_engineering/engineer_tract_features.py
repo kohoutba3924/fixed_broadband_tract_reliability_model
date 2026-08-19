@@ -8,7 +8,7 @@ import polars as pl
 from shapely import wkb
 
 WAREHOUSE_PATH = Path("../ml_feature_pipeline/dbt_project/warehouse.duckdb")
-OUTPUT_PATH = Path("data/processed/tract_features.parquet")
+OUTPUT_PATH = Path("data/processed/feature_engineering/tract_features.parquet")
 DIM_TABLE = "dim_tract"
 
 
@@ -265,19 +265,19 @@ def add_sanitization_metadata(df: pl.DataFrame) -> pl.DataFrame:
         operator.add, [pl.col(f"{col}_was_null") for col in numeric_cols]
     )
 
-    df = df.with_columns(null_sum_expr.alias("num_sanitized_fields"))
+    df = df.with_columns(null_sum_expr.alias("tract_num_sanitized_fields"))
 
     df = df.with_columns(
         [
-            (pl.col("num_sanitized_fields") > 0).alias("is_sanitized"),
-            pl.when(pl.col("num_sanitized_fields") == 0)
+            (pl.col("tract_num_sanitized_fields") > 0).alias("tract_is_sanitized"),
+            pl.when(pl.col("tract_num_sanitized_fields") == 0)
             .then(pl.lit("none"))
-            .when(pl.col("num_sanitized_fields") <= 10)
+            .when(pl.col("tract_num_sanitized_fields") <= 10)
             .then(pl.lit("partial"))
-            .when(pl.col("num_sanitized_fields") <= 25)
+            .when(pl.col("tract_num_sanitized_fields") <= 25)
             .then(pl.lit("moderate"))
             .otherwise(pl.lit("high"))
-            .alias("sanitization_level"),
+            .alias("tract_sanitization_level"),
         ]
     )
 
@@ -290,22 +290,33 @@ def add_sanitization_metadata(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def main():
-    print("[1/6] Loading dim_tract from DuckDB...")
+    print("[1/7] Loading dim_tract from DuckDB...")
     df = load_dim_tract()
 
-    print("[2/6] Decoding geometry (area, perimeter, compactness)...")
+    print("[2/7] Decoding geometry (area, perimeter, compactness)...")
     df = decode_geometry(df)
 
-    print("[3/6] Engineering ACS ratio features...")
+    print("[3/7] Engineering ACS ratio features...")
     df = engineer_acs_features(df)
 
-    print("[4/6] Normalizing ACS summary fields for non-residential tracts...")
+    print("[4/7] Normalizing ACS summary fields for non-residential tracts...")
     df = normalize_empty_tracts(df)
 
-    print("[5/6] Adding sanitization metadata...")
+    print("[5/7] Dropping static fields and data types inconsistent with modeling...")
+    df = df.drop(
+        [
+            "state_fips",
+            "county_fips",
+            "tract_code",
+            "tract_bucket",
+            "geometry_wkb",
+        ]
+    )
+
+    print("[6/7] Adding sanitization metadata...")
     df = add_sanitization_metadata(df)
 
-    print("[6/6] Writing output parquet...")
+    print("[7/7] Writing output parquet...")
     df.write_parquet(OUTPUT_PATH)
 
     print("dim_tract feature engineering complete.")

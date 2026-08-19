@@ -7,7 +7,9 @@ import numpy as np
 import polars as pl
 
 WAREHOUSE_PATH = Path("../ml_feature_pipeline/dbt_project/warehouse.duckdb")
-OUTPUT_PATH = Path("data/processed/lcdv2_tract_quarter_features.parquet")
+OUTPUT_PATH = Path(
+    "data/processed/feature_engineering/lcdv2_tract_quarter_features.parquet"
+)
 LCDV2_TABLE = "fact_lcdv2_tract_hourly"
 
 
@@ -224,6 +226,129 @@ def compute_cluster_features(df: pl.DataFrame) -> pl.DataFrame:
     return pl.DataFrame(results)
 
 
+SEGMENT_BUCKETS = {
+    # Temperature
+    "weighted_dry_bulb_temp": [
+        (-999, 0),
+        (0, 10),
+        (10, 20),
+        (20, 30),
+        (30, 40),
+        (40, 50),
+        (50, 60),
+        (60, 70),
+        (70, 80),
+        (80, 999),
+    ],
+    "weighted_wet_bulb_temp": [
+        (-999, 0),
+        (0, 10),
+        (10, 20),
+        (20, 30),
+        (30, 40),
+        (40, 50),
+        (50, 60),
+        (60, 70),
+        (70, 80),
+        (80, 999),
+    ],
+    "weighted_dew_point_temp": [
+        (-999, 0),
+        (0, 10),
+        (10, 20),
+        (20, 30),
+        (30, 40),
+        (40, 50),
+        (50, 60),
+        (60, 70),
+        (70, 80),
+        (80, 999),
+    ],
+    # Humidity
+    "weighted_relative_humidity": [
+        (0, 30),
+        (30, 50),
+        (50, 70),
+        (70, 80),
+        (80, 100),
+    ],
+    # Wind speed
+    "weighted_wind_speed": [
+        (0, 5),
+        (5, 10),
+        (10, 15),
+        (15, 20),
+        (20, 30),
+        (30, 999),
+    ],
+    # Wind gust
+    "weighted_wind_gust_speed": [
+        (0, 20),
+        (20, 30),
+        (30, 40),
+        (40, 50),
+        (50, 999),
+    ],
+    # precipitation
+    "weighted_precipitation": [
+        (-0.0001, 0.0001),  # captures all “zero precip” hours
+        (0.0001, 0.01),
+        (0.01, 0.10),
+        (0.10, 0.25),
+        (0.25, 0.50),
+        (0.50, 999),
+    ],
+    # pressure buckets
+    "weighted_station_pressure": [
+        (28.0, 28.75),
+        (28.75, 29.25),
+        (29.25, 29.75),
+        (29.75, 31.0),
+    ],
+    "weighted_barometric_pressure": [
+        (28.0, 28.75),
+        (28.75, 29.25),
+        (29.25, 29.75),
+        (29.75, 31.0),
+    ],
+    # Visibility
+    "weighted_visibility": [
+        (0, 1),
+        (1, 2),
+        (2, 5),
+        (5, 999),
+    ],
+}
+
+
+# ---------------------------------------------------------
+# Segmentation helper: count + proportion per bucket
+# ---------------------------------------------------------
+
+
+def segmentation_exprs(var: str):
+    buckets = SEGMENT_BUCKETS[var]
+    exprs = []
+
+    for low, high in buckets:
+        bucket_name = f"{var}_bucket_{low}_{high}"
+
+        count_expr = (
+            pl.col(var)
+            .is_between(low, high, closed="both")
+            .sum()
+            .alias(f"{bucket_name}_hours")
+        )
+
+        prop_expr = (
+            pl.col(var).is_between(low, high, closed="both").sum() / pl.len()
+        ).alias(f"{bucket_name}_prop")
+
+        exprs.extend([count_expr, prop_expr])
+
+    return exprs
+
+
 # ---------------------------------------------------------
 # Core tract-quarter aggregation (including counts)
 # ---------------------------------------------------------
@@ -279,6 +404,9 @@ def aggregate_tract_quarter(df: pl.DataFrame) -> pl.DataFrame:
         )
         agg_exprs.extend(pct(pl.col(var), var))
 
+        # Segmentation buckets (count + proportion)
+        agg_exprs.extend(segmentation_exprs(var))
+
     # Boolean → count
     for var in boolean_vars:
         agg_exprs.append(pl.col(var).sum().alias(f"{var}_hours"))
@@ -328,19 +456,19 @@ def add_sanitization_metadata(df: pl.DataFrame) -> pl.DataFrame:
         operator.add, [pl.col(f"{col}_was_null") for col in sanitized_cols]
     )
 
-    df = df.with_columns(null_sum_expr.alias("num_sanitized_fields"))
+    df = df.with_columns(null_sum_expr.alias("lcdv2_num_sanitized_fields"))
 
     df = df.with_columns(
         [
-            (pl.col("num_sanitized_fields") > 0).alias("is_sanitized"),
-            pl.when(pl.col("num_sanitized_fields") == 0)
+            (pl.col("lcdv2_num_sanitized_fields") > 0).alias("lcdv2_is_sanitized"),
+            pl.when(pl.col("lcdv2_num_sanitized_fields") == 0)
             .then(pl.lit("none"))
-            .when(pl.col("num_sanitized_fields") <= 5)
+            .when(pl.col("lcdv2_num_sanitized_fields") <= 5)
             .then(pl.lit("partial"))
-            .when(pl.col("num_sanitized_fields") <= 12)
+            .when(pl.col("lcdv2_num_sanitized_fields") <= 12)
             .then(pl.lit("moderate"))
             .otherwise(pl.lit("high"))
-            .alias("sanitization_level"),
+            .alias("lcdv2_sanitization_level"),
         ]
     )
 
@@ -377,6 +505,7 @@ def main():
     final = grouped.join(wind_dir, on=["tract", "year", "quarter"], how="left").join(
         clusters, on=["tract", "year", "quarter"], how="left"
     )
+
     final = add_sanitization_metadata(final)
 
     print("[8/8] Writing output parquet...")

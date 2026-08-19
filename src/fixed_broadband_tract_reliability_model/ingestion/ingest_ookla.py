@@ -8,7 +8,9 @@ from shapely.geometry import Point
 
 RAW_DIR = Path("data/raw")
 TRACT_DB_PATH = Path("../ml_feature_pipeline/dbt_project/warehouse.duckdb")
-OUTPUT_PATH = Path("data/processed/ookla_fixed_broadband_service_multi_quarter.parquet")
+OUTPUT_PATH = Path(
+    "data/processed/ingestion/ookla_fixed_broadband_service_multi_quarter.parquet"
+)
 
 WI_BOUNDS = {
     "lat_min": 42.49,
