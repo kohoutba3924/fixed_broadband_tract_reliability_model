@@ -40,7 +40,6 @@ All data is filtered and aggregated to the **census tract** level.
 ### 2. Feature Engineering
 Creation of tract‑level features capturing:
 - network performance  
-- speed tier penetration  
 - weather conditions  
 - demographic and geographic context  
 
@@ -65,7 +64,7 @@ Final synthesis of insights, visualizations, and recommendations.
 ## Development Status
 
 This project is currently in **active development**.  
-Early scaffolding, ingestion planning, and environment setup are complete.  
-Feature engineering, modeling, and reporting stages will be added iteratively.
+Ingestion and feature engineering are complete.  
+EDA and feature selection, modeling, and reporting stages will be added iteratively.
 
 Visitors can expect regular updates as the project progresses toward a full tract‑level reliability modeling pipeline.
