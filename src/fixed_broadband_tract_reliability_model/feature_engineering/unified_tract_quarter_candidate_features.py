@@ -24,7 +24,19 @@ def load_dim_tract() -> pl.DataFrame:
 def load_ookla_target() -> pl.DataFrame:
     # Only keep keys + reliability_index
     df = pl.read_parquet(OOKLA_PATH)
-    return df.select(["tract", "year", "quarter", "reliability_index"])
+    return df.select(
+        [
+            "tract",
+            "year",
+            "quarter",
+            "reliability_index",
+            "tests_total",
+            "devices_total",
+            "tile_count",
+            "tests_per_tile",
+            "devices_per_tile",
+        ]
+    )
 
 
 def assemble_unified_dataset(
@@ -36,6 +48,12 @@ def assemble_unified_dataset(
 
     # Join dim_tract on tract only
     df = df.join(dim_tract, on="tract", how="left")
+
+    # Keep only tracts with non-zero population
+    df = df.filter(pl.col("population_total") > 0)
+
+    # Keep only rows with a valid reliability_index
+    df = df.filter(pl.col("reliability_index").is_not_null())
 
     return df
 
