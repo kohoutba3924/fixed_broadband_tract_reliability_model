@@ -58,7 +58,6 @@ def decode_geometry(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def engineer_acs_features(df: pl.DataFrame) -> pl.DataFrame:
-    # Create all intermediate totals
     df = df.with_columns(
         [
             # Age structure totals
@@ -107,7 +106,6 @@ def engineer_acs_features(df: pl.DataFrame) -> pl.DataFrame:
         ]
     )
 
-    # Compute ratios using the totals created above
     df = df.with_columns(
         [
             # Sex ratios
@@ -206,47 +204,24 @@ def engineer_acs_features(df: pl.DataFrame) -> pl.DataFrame:
 
 
 # -----------------------------------------------------------------------
-# Normalize ACS fields for empty tracts, represent non-residential areas
+# Replace sentinel negatives with nulls
 # -----------------------------------------------------------------------
 
 
-def normalize_empty_tracts(df: pl.DataFrame) -> pl.DataFrame:
-
-    empty_mask = pl.col("tract_code").str.starts_with("99")
-
-    # Median fields to zero
-    median_fields = [
+def replace_sentinel_negatives(df: pl.DataFrame) -> pl.DataFrame:
+    sentinel_fields = [
         "median_age",
         "median_household_income",
         "median_home_value",
         "median_gross_rent",
     ]
 
-    # Ratio fields (pct_*)
-    ratio_fields = [col for col in df.columns if col.startswith("pct_")]
-
-    # Additional derived fields needing normalization
-    special_fields = ["sex_ratio"]
-
-    df = df.with_columns(
+    return df.with_columns(
         [
-            # Median fields → 0
-            pl.when(empty_mask).then(0).otherwise(pl.col(col)).alias(col)
-            for col in median_fields
-        ]
-        + [
-            # Ratio fields → 0
-            pl.when(empty_mask).then(0).otherwise(pl.col(col)).alias(col)
-            for col in ratio_fields
-        ]
-        + [
-            # Special derived fields → 0
-            pl.when(empty_mask).then(0).otherwise(pl.col(col)).alias(col)
-            for col in special_fields
+            pl.when(pl.col(col) < 0).then(None).otherwise(pl.col(col)).alias(col)
+            for col in sentinel_fields
         ]
     )
-
-    return df
 
 
 # ---------------------------------------------------------
@@ -299,8 +274,8 @@ def main():
     print("[3/7] Engineering ACS ratio features...")
     df = engineer_acs_features(df)
 
-    print("[4/7] Normalizing ACS summary fields for non-residential tracts...")
-    df = normalize_empty_tracts(df)
+    print("[4/7] Replacing sentinel negative ACS summary values with nulls...")
+    df = replace_sentinel_negatives(df)
 
     print("[5/7] Dropping static fields and data types inconsistent with modeling...")
     df = df.drop(

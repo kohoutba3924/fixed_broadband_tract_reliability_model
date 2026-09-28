@@ -25,7 +25,6 @@ __pycache__/
 *.egg
 
 # Jupyter 
-notebooks/
 .ipynb_checkpoints/
 
 # ML / modeling artifacts
