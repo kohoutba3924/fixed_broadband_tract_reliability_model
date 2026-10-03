@@ -1,0 +1,9 @@
+Model Results: elasticnet
+Generated: 2026-10-02 15:31:06.236858
+
+mse: 402.1776
+mae: 15.3816
+r2: 0.3486
+cv_mse_mean: 389.2068
+cv_mae_mean: 15.2556
+cv_r2_mean: 0.3630

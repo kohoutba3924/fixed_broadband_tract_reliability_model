@@ -1,0 +1,9 @@
+Model Results: random_forest
+Generated: 2026-10-02 15:49:20.460019
+
+mse: 227.9612
+mae: 10.3029
+r2: 0.6308
+cv_mse_mean: 222.6212
+cv_mae_mean: 10.2267
+cv_r2_mean: 0.6357

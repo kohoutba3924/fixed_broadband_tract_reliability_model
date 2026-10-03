@@ -1,0 +1,9 @@
+Model Results: ridge
+Generated: 2026-10-02 15:31:06.234950
+
+mse: 357.2950
+mae: 14.0846
+r2: 0.4213
+cv_mse_mean: 347.0324
+cv_mae_mean: 14.0618
+cv_r2_mean: 0.4323

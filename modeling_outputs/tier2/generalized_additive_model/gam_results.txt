@@ -1,0 +1,9 @@
+Model Results: gam
+Generated: 2026-10-02 16:04:49.704773
+
+mse: 278.8628
+mae: 12.2129
+r2: 0.5483
+cv_mse_mean: 275.7335
+cv_mae_mean: 12.1980
+cv_r2_mean: 0.5488
