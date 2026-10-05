@@ -3,7 +3,16 @@ import os
 
 from src.fixed_broadband_tract_reliability_model.modeling.gam_plots import (
     plot_gam_feature_effect,
-    plot_gam_top_features,
+    plot_gam_full_ranking,
+)
+from src.fixed_broadband_tract_reliability_model.modeling.model_registry import (
+    load_or_train_model,
+)
+from src.fixed_broadband_tract_reliability_model.modeling.tier1_interpretability import (
+    compute_tier1_interpretability,
+)
+from src.fixed_broadband_tract_reliability_model.modeling.tier1_plots import (
+    plot_tier1_interpretability,
 )
 from src.fixed_broadband_tract_reliability_model.modeling.train_baselines import (
     train_baseline_models,
@@ -12,7 +21,7 @@ from src.fixed_broadband_tract_reliability_model.modeling.train_tier1 import (
     train_tier1_models,
 )
 from src.fixed_broadband_tract_reliability_model.modeling.train_tier2 import (
-    train_gam_model,
+    train_tier2_gam,
 )
 from src.fixed_broadband_tract_reliability_model.modeling.utils.data_io import (
     write_model_results,
@@ -28,88 +37,171 @@ logger = logging.getLogger(__name__)
 def main():
     logger.info("Starting modeling pipeline...")
 
-    # -------------------------
-    # Baselines
-    # -------------------------
-    logger.info("Running baseline models...")
-    baseline_results = train_baseline_models()
-    print("\nBaseline Model Results:")
-    for model_name, metrics in baseline_results.items():
-        print(f"\nModel: {model_name}")
-        for metric, value in metrics.items():
-            print(f"  {metric}: {value:.4f}")
+    # =========================================================
+    # BASELINE MODELS (ridge + elasticnet)
+    # =========================================================
+    logger.info("Preparing baseline models...")
+    baseline = train_baseline_models()
+    baseline_data = baseline["data"]
 
-        # Map model_name -> correct output directory
+    _X_train_b = baseline_data["X_train"]
+    _X_test_b = baseline_data["X_test"]
+    _y_train_b = baseline_data["y_train"]
+    _y_test_b = baseline_data["y_test"]
+
+    print("\nBaseline Model Results:")
+
+    baseline_store = os.path.join("model_store", "baseline")
+    os.makedirs(baseline_store, exist_ok=True)
+
+    for model_name, model_info in baseline.items():
+        if model_name == "data":
+            continue
+
+        save_path = os.path.join(baseline_store, f"{model_name}.pkl")
+
+        # Load or train
+        model = load_or_train_model(
+            model_name=model_name,
+            save_path=save_path,
+            train_fn=model_info["train_fn"],
+        )
+
+        # Evaluate
+        metrics = model_info["metrics_fn"](model)
+
+        # Output directory
         if model_name == "ridge":
             output_dir = os.path.join("modeling_outputs", "baseline", "ridge")
         elif model_name == "elasticnet":
             output_dir = os.path.join("modeling_outputs", "baseline", "elastic_net")
         else:
-            # fallback if new baselines are added later
             output_dir = os.path.join("modeling_outputs", "baseline", model_name)
 
         write_model_results(output_dir, model_name, metrics)
-        logger.info(f"Baseline results written for model: {model_name}")
 
-    # -------------------------
-    # Tier 1 Models
-    # -------------------------
-    logger.info("Running Tier 1 models...")
-    tier1_results = train_tier1_models()
-    print("\nTier 1 Model Results:")
-    for model_name, metrics in tier1_results.items():
         print(f"\nModel: {model_name}")
         for metric, value in metrics.items():
             print(f"  {metric}: {value:.4f}")
 
-        # Map model_name -> correct output directory
-        if model_name == "random_forest":
-            output_dir = os.path.join("modeling_outputs", "tier1", "random_forest")
-        elif model_name == "hgb":
-            output_dir = os.path.join(
-                "modeling_outputs", "tier1", "hist_gradient_boosting"
-            )
-        else:
-            output_dir = os.path.join("modeling_outputs", "tier1", model_name)
+        logger.info(f"Baseline results written for model: {model_name}")
 
+    # =========================================================
+    # TIER 1 MODELS (RF + HGB)
+    # =========================================================
+    logger.info("Preparing Tier 1 models...")
+    tier1 = train_tier1_models()
+    tier1_data = tier1["data"]
+
+    X_train = tier1_data["X_train"]
+    X_test = tier1_data["X_test"]
+    _y_train = tier1_data["y_train"]
+    y_test = tier1_data["y_test"]
+    feature_names = tier1_data["feature_names"]
+
+    print("\nTier 1 Model Results:")
+
+    tier1_store = os.path.join("model_store", "tier1")
+    os.makedirs(tier1_store, exist_ok=True)
+
+    for model_name, model_info in tier1.items():
+        if model_name == "data":
+            continue
+
+        save_path = os.path.join(tier1_store, f"{model_name}.pkl")
+
+        # Load or train
+        model = load_or_train_model(
+            model_name=model_name,
+            save_path=save_path,
+            train_fn=model_info["train_fn"],
+        )
+
+        # Evaluate
+        metrics = model_info["metrics_fn"](model)
+
+        # Output directory
+        output_dir = os.path.join("modeling_outputs", "tier1", model_name)
         write_model_results(output_dir, model_name, metrics)
+
+        print(f"\nModel: {model_name}")
+        for metric, value in metrics.items():
+            print(f"  {metric}: {value:.4f}")
+
         logger.info(f"Tier 1 results written for model: {model_name}")
 
-    # -------------------------
-    # Tier 2 GAM
-    # -------------------------
-    logger.info("Running GAM model...")
-    gam_results = train_gam_model()
+        # Interpretability
+        logger.info(f"Computing interpretability artifacts for {model_name}...")
+        artifacts = compute_tier1_interpretability(
+            model=model,
+            model_name=model_name,
+            X_train=X_train,
+            X_test=X_test,
+            y_test=y_test,
+            feature_names=feature_names,
+            top_n=10,
+            top_k_interactions=1,
+        )
+
+        logger.info(f"Saving interpretability plots for {model_name}...")
+        plot_tier1_interpretability(
+            model_name=model_name,
+            feature_names=feature_names,
+            artifacts=artifacts,
+            output_dir=output_dir,
+        )
+
+    # =========================================================
+    # TIER 2 MODEL (GAM)
+    # =========================================================
+    logger.info("Preparing Tier 2 GAM model...")
+    tier2 = train_tier2_gam()
+    tier2_data = tier2["data"]
+
+    _X_train_g = tier2_data["X_train"]
+    _X_test_g = tier2_data["X_test"]
+    _y_train_g = tier2_data["y_train"]
+    _y_test_g = tier2_data["y_test"]
+    _feature_names_g = tier2_data["feature_names"]
+
+    gam_store = os.path.join("model_store", "tier2")
+    os.makedirs(gam_store, exist_ok=True)
+
+    save_path = os.path.join(gam_store, "gam.pkl")
+
+    # Load or train GAM
+    gam_model = load_or_train_model(
+        model_name="gam",
+        save_path=save_path,
+        train_fn=tier2["gam"]["train_fn"],
+    )
+
+    # Evaluate GAM
+    gam_metrics = tier2["gam"]["metrics_fn"](gam_model)
+
     print("\nTier 2 GAM Model Results:")
-    gam_metrics = {
-        k: v
-        for k, v in gam_results.items()
-        if k not in ["model", "feature_names", "interpretability"]
-    }
     for metric, value in gam_metrics.items():
         print(f"  {metric}: {value:.4f}")
 
-    # Write GAM metrics to generalized_additive_model directory
     gam_output_dir = os.path.join(
         "modeling_outputs", "tier2", "generalized_additive_model"
     )
     write_model_results(gam_output_dir, "gam", gam_metrics)
     logger.info("GAM results written.")
 
-    # -------------------------
-    # GAM Interpretability Plots
-    # -------------------------
-    interp = gam_results["interpretability"]
+    # Interpretability
+    logger.info("Computing GAM interpretability artifacts...")
+    gam_artifacts = tier2["gam"]["interpretability_fn"](gam_model)
 
-    output_root = "modeling_outputs/tier2"
-    effects_dir = os.path.join(output_root, "gam_effects")
-    ranking_dir = os.path.join(output_root, "gam_rankings")
+    # Ranking plot
+    ranking_dir = os.path.join("modeling_outputs", "tier2", "gam_rankings")
+    logger.info("Saving GAM full ranking plot...")
+    plot_gam_full_ranking(gam_artifacts["full_ranking"], ranking_dir)
 
-    logger.info("Saving GAM ranking plot...")
-    plot_gam_top_features(interp["ranked_features"], ranking_dir)
-
+    # Effect plots
+    effects_dir = os.path.join("modeling_outputs", "tier2", "gam_effects")
     logger.info("Saving GAM feature effect plots...")
-    for feature_name, effect_data in interp["effects"].items():
+    for feature_name, effect_data in gam_artifacts["effects"].items():
         plot_gam_feature_effect(feature_name, effect_data, effects_dir)
 
     logger.info("Modeling pipeline complete.")

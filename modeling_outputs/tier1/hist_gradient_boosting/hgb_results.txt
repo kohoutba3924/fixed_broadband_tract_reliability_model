@@ -1,9 +1,0 @@
-Model Results: hgb
-Generated: 2026-10-02 15:49:20.461964
-
-mse: 239.3959
-mae: 10.4840
-r2: 0.6123
-cv_mse_mean: 229.4578
-cv_mae_mean: 10.3433
-cv_r2_mean: 0.6247

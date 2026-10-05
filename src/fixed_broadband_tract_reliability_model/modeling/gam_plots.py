@@ -1,14 +1,43 @@
+import json
 import os
 
 import matplotlib.pyplot as plt
+
+
+def _ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
+
+
+def _save_json(obj, path):
+    with open(path, "w") as f:
+        json.dump(obj, f, indent=2)
+
+
+def plot_gam_full_ranking(full_ranking, output_dir):
+    """
+    Plot full p-value ranking (all features).
+    """
+    _ensure_dir(output_dir)
+    save_path = os.path.join(output_dir, "gam_pvalue_ranking.png")
+
+    names = list(full_ranking.keys())
+    pvals = list(full_ranking.values())
+
+    plt.figure(figsize=(12, max(6, len(names) * 0.25)))
+    plt.barh(names[::-1], pvals[::-1], color="steelblue")
+    plt.title("GAM Feature Ranking (p-values)")
+    plt.xlabel("p-value (lower = stronger effect)")
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
 
 
 def plot_gam_feature_effect(feature_name, effect_data, output_dir):
     """
     Save a GAM feature effect plot with confidence intervals.
     """
-    os.makedirs(output_dir, exist_ok=True)
-    save_path = os.path.join(output_dir, f"{feature_name}_effect.png")
+    _ensure_dir(output_dir)
+    save_path = os.path.join(output_dir, f"gam_effect_{feature_name}.png")
 
     x = effect_data["x"]
     y = effect_data["y"]
@@ -23,28 +52,6 @@ def plot_gam_feature_effect(feature_name, effect_data, output_dir):
     plt.xlabel(feature_name)
     plt.ylabel("Effect on Reliability Index")
     plt.grid(True)
-
-    plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.close()
-
-
-def plot_gam_top_features(ranked_features, output_dir, top_n=10):
-    """
-    Plot top additive features ranked by p-value (lower = stronger effect).
-    """
-    os.makedirs(output_dir, exist_ok=True)
-    save_path = os.path.join(output_dir, "top_features.png")
-
-    # Extract names and p-values
-    names = [f[0] for f in ranked_features[:top_n]]
-    pvals = [f[1]["p_value"] for f in ranked_features[:top_n]]
-
-    plt.figure(figsize=(10, 6))
-    plt.barh(names[::-1], pvals[::-1], color="steelblue")
-    plt.title(f"Top {top_n} GAM Additive Feature Effects (Ranked by p-value)")
-    plt.xlabel("p-value (lower = stronger effect)")
-    plt.grid(axis="x")
-    plt.tight_layout()
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()

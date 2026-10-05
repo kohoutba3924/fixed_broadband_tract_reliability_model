@@ -1,5 +1,5 @@
 Model Results: random_forest
-Generated: 2026-10-02 15:49:20.460019
+Generated: 2026-10-04 16:38:01.472275
 
 mse: 227.9612
 mae: 10.3029
