@@ -1,14 +1,18 @@
 # **1. Executive Summary**
 
-This project develops a tract‑level broadband reliability model using a multi‑model interpretability framework built on Random Forest (RF), Histogram Gradient Boosting (HGB), and Generalized Additive Models (GAM). The goal is to understand the structural, socioeconomic, demographic, geographic, and environmental factors that shape reliability outcomes across U.S. census tracts. Reliability is engineered from **Ookla Speedtest data**, aggregated and penalized to account for sampling sparsity, tract heterogeneity, and measurement instability. Feature data is sourced from **LCDv2 climatological datasets**, **ACS socioeconomic and demographic data**, and **TIGER geographic data**.
+This project develops a US Census tract‑level broadband reliability model using a multi‑model interpretability framework built on Random Forest (RF), Histogram Gradient Boosting (HGB), and Generalized Additive Models (GAM). The model is designed to address a core operational problem: **understanding why broadband reliability varies across different communities and identifying the structural, socioeconomic, demographic, geographic, and environmental factors that drive those differences**. This insight enables more targeted testing, investment prioritization, and customer‑focused service reliability improvements.
+
+Reliability is engineered from **Ookla Speedtest data**, aggregated and penalized to account for sampling sparsity, tract heterogeneity, and measurement instability. Feature data is sourced from **LCDv2 climatological datasets**, **ACS socioeconomic and demographic data**, and **TIGER geographic data**.
 
 The modeling pipeline reveals a **fundamentally nonlinear reliability landscape**. Across all models and interpretability artifacts—permutation importance, SHAP ranking, SHAP beeswarm, PDP 1D, GAM ranking, and GAM effect plots—one insight stands out: **tract geometry is the dominant structural driver of reliability**. Smaller tracts consistently exhibit higher reliability, while larger tracts show sharp thresholded declines. This dominance is not a modeling artifact; it reflects the engineered reliability target’s sensitivity to sampling confidence and spatial heterogeneity, both of which correlate strongly with tract size.
 
-Education emerges as the most stable socioeconomic predictor. **pct_bachelors** shows a clean, monotonic positive relationship with reliability across every model and interpretability method. Demographic variables such as **pct_black** and **pct_65_plus** exert meaningful but nonlinear effects, often mediated through education, housing composition, and tract geometry. Built environment features—including **housing_structure_universe** and **pct_housing_occupied**—show smooth nonlinear contributions that GAM captures more clearly than tree‑based models. Weather and economic variables contribute weak but structured nonlinear effects, typically only at extreme values.
+Education emerges as the most stable socioeconomic predictor. **edu_bachelors** shows a clean, monotonic positive relationship with reliability across every model and interpretability method. Demographic variables such as **pct_black** and **pct_65_plus** exert meaningful but nonlinear effects, often mediated through education, housing composition, and tract geometry. Built environment features—including **housing_structure_universe** and **pct_housing_occupied**—show smooth nonlinear contributions that GAM captures more clearly than tree‑based models. Weather and economic variables contribute weak but structured nonlinear effects, typically only at extreme values.
 
-The interpretability synthesis demonstrates that reliability is shaped by a combination of structural geography, socioeconomic conditions, demographic composition, and built environment characteristics, all interacting within a nonlinear framework. While the model performs well, several limitations remain: **hyperparameters were not tuned**, and **tract‑level broadband hardware data is unavailable**, constraining the model’s ability to distinguish infrastructure‑driven reliability variation from sampling‑driven variation. These limitations inform the project’s future enhancement roadmap, which includes hyperparameter optimization, interaction‑focused feature engineering, incorporation of infrastructure data, and spatial modeling extensions.
+The interpretability synthesis demonstrates that reliability is shaped by a combination of structural geography, socioeconomic conditions, demographic composition, and built environment characteristics, all interacting within a nonlinear framework. While the model performs well, several limitations remain: **hyperparameters were not tuned**, and **tract‑level broadband hardware data is unavailable**, constraining the model’s ability to distinguish infrastructure‑driven reliability variation from sampling‑driven variation. These limitations inform the project’s future enhancement roadmap, which includes hyperparameter optimization, interaction‑focused feature engineering, incorporation of infrastructure and provider data, and spatial modeling extensions.
 
-This report presents the full modeling pipeline, interpretability analysis, engineered reliability target design, limitations, and future work recommendations. It provides a transparent, rigorous, and multi‑angle understanding of tract‑level broadband reliability and establishes a foundation for iterative refinement and expansion.
+This report presents the full modeling pipeline, engineered reliability target design, interpretability analysis, limitations, and future work recommendations. It provides a transparent, rigorous, and multi‑angle understanding of tract‑level broadband reliability and establishes a foundation for iterative refinement and expansion.
+
+---
 
 # **2. Data Overview**
 
@@ -48,8 +52,6 @@ Ookla provides the raw measurement data used to engineer the tract‑level relia
 
 Several stability‑related features (e.g., tests_per_tile, devices_per_tile) were derived from these aggregates to support the reliability index design described in Section 3.
 
----
-
 ### **B. LCDv2 Climatological Data (Feature Source)**
 
 LCDv2 contributes weather and environmental features aggregated to the tract-quarter level. These include:
@@ -63,13 +65,11 @@ LCDv2 contributes weather and environmental features aggregated to the tract-qua
 
 These features capture environmental conditions that may influence broadband performance or infrastructure stability.
 
----
-
 ### **C. ACS Socioeconomic & Demographic Data (Feature Source)**
 
 ACS provides a wide range of tract‑level socioeconomic and demographic variables, including:
 
-- educational attainment (e.g., pct_bachelors, pct_masters)  
+- educational attainment (e.g., edu_bachelors, pct_masters)  
 - income and employment  
 - race and ethnicity distributions  
 - age structure (e.g., pct_65_plus)  
@@ -78,8 +78,6 @@ ACS provides a wide range of tract‑level socioeconomic and demographic variabl
 - housing_structure_universe  
 
 Many of the most influential features in the model originate from ACS tables.
-
----
 
 ### **D. TIGER Geographic Data (Feature Source)**
 
@@ -105,7 +103,7 @@ Derived features in the final feature dataset originate from LCDv2, ACS, and Ook
 - extreme weather indicators  
 
 ### **ACS‑Derived**
-- pct_bachelors  
+- edu_bachelors  
 - pct_high_school  
 - pct_65_plus  
 - pct_unemployment  
@@ -172,10 +170,11 @@ Readers may explore the raw datasets used to construct the curated feature matri
 
 ---
 
-## **2.8 Summary**
+## **2.8 Data Summary**
 
 The dataset used in this project integrates Ookla Speedtest measurements, LCDv2 climatological features, ACS socioeconomic and demographic variables, and TIGER geographic attributes into a unified tract‑level feature matrix. While rich and multi‑modal, the dataset is shaped by sampling sparsity in rural tracts and the absence of tract‑level broadband infrastructure data. These characteristics motivate the engineered reliability target and inform the interpretability results presented later in the report.
 
+---
 
 # **3. Target Engineering: Reliability Index Design**
 
@@ -219,8 +218,6 @@ Latency metrics use inverse normalization:
 
 The Component Score is the mean of these eight normalized values.
 
----
-
 ### **B. Penalty Score (Instability and Degradation)**
 
 The Penalty Score applies nonlinear penalties for signs of poor performance or measurement instability. These penalties include:
@@ -248,8 +245,6 @@ These terms are summed to produce a raw penalty value, then normalized:
 
 Nonlinear exponents ensure severe degradation is penalized more heavily than moderate degradation.
 
----
-
 ### **C. Confidence Score (Sampling Confidence)**
 
 Sampling confidence is based **solely on `tests_total`**, using a log‑scaled normalization:
@@ -262,8 +257,6 @@ This reflects the intuition that:
 - fewer tests → lower confidence and greater susceptibility to instability  
 
 Importantly, **`devices_total`** and **`tile_count`** do not directly influence the confidence score; they contribute only to derived features used in penalties.
-
----
 
 ### **D. Final Score**
 
@@ -343,18 +336,81 @@ These patterns validate that the index captures meaningful structural variation 
 
 ---
 
-## **3.8 Summary**
+## **3.8 Target Summary**
 
 The Reliability Index is a composite measure designed to balance broadband performance, measurement stability, and sampling confidence. Its penalties ensure that sparsity and heterogeneity are interpreted as reliability risk rather than broadband performance. This design explains tract_area’s dominant role in the interpretability results and provides a stable foundation for tract‑level modeling and analysis.
 
 
-# **4. Modeling Pipeline**
+---
 
-This section describes the end‑to‑end modeling workflow used to predict tract‑level broadband reliability from the curated feature matrix produced by **ml_feature_pipeline**. The pipeline includes baseline linear models, nonlinear ensemble models, and an additive model, each selected to provide complementary interpretability perspectives. The modeling approach emphasizes transparency and structural insight over predictive optimization.
+# **4. Feature Selection**
+
+The unified tract‑quarter feature matrix contains several hundred engineered features spanning weather, geography, demographics, socioeconomic indicators, housing structure, language isolation, race composition, and temporal attributes. To ensure the modeling pipeline remained both tractable and interpretable, a structured multi‑stage feature selection process was applied. This process reduced redundancy, removed unstable or uninformative features, and retained only those variables that contributed meaningful predictive signal.
 
 ---
 
-## **4.1 Modeling Objectives**
+## **4.1 Removal of Identifiers, Target, and Quality‑Control Fields**
+The initial step removed non‑predictive columns, including tract identifiers, the reliability_index target, and all LCDv2 and ACS/TIGER sanitization metadata (`*_was_null`, `*_sanitization_level`). These fields are essential for data quality assessment but inappropriate for model training.
+
+---
+
+## **4.2 Variance Filtering**
+All remaining features were standardized, and their variance was computed. Features with near‑zero variance (threshold: 1e‑4) were removed. These variables do not meaningfully differentiate tracts and contribute no predictive value.
+
+---
+
+## **4.3 Cluster‑Based Correlation Pruning**
+Features were grouped into coherent clusters reflecting their source and semantic meaning (e.g., LCDv2 temperature, LCDv2 wind, ACS demographics, ACS socioeconomic indicators, TIGER geometry).  
+Within each cluster, pairwise correlations were computed. When two features exceeded a correlation threshold of 0.90, the less informative feature was removed. This step eliminated redundant representations of the same underlying signal.
+
+---
+
+## **4.4 Random Forest + Permutation Importance Screening**
+A Random Forest model was trained on the remaining features, and both impurity‑based feature importance and permutation importance were computed.  
+For each cluster:
+
+- The **top 10 features** by importance were retained.  
+- Any feature with **permutation importance ≥ 0.5** was also retained.  
+
+This ensured that each domain contributed only its strongest and most stable predictors.
+
+---
+
+## **4.5 Global Cross‑Cluster Correlation Filtering**
+After cluster‑level pruning, a second correlation filter was applied across all retained features. When two features from different clusters exceeded a correlation threshold of 0.90, the feature with lower permutation importance was removed. This step prevented cross‑domain redundancy.
+
+---
+
+## **4.6 Preservation of Temporal Structure**
+The temporal features `year` and `quarter` were explicitly retained. These variables anchor the tract‑quarter structure of the dataset and are essential for capturing seasonal and annual patterns in reliability.
+
+---
+
+## **4.7 Final Feature Set Construction**
+The final retained features were deduplicated, sorted, and combined with the reliability_index target. This curated feature set was saved as the modeling input (`final_feature_set.parquet`) and used for all subsequent model training, evaluation, and interpretability analysis.
+
+---
+
+# **5. Modeling Pipeline**
+
+This section describes the end‑to‑end modeling workflow used to predict tract‑level broadband reliability from the curated feature matrix produced by **ml_feature_pipeline**. The pipeline includes baseline linear models, nonlinear ensemble models, and an additive model, each selected to provide complementary interpretability perspectives. The modeling approach emphasizes transparency and structural insight over predictive optimization.
+
+### **Outcome**
+
+This multi‑stage selection process reduced the feature space from several hundred engineered variables to a compact, high‑signal set that:
+
+- preserves the strongest predictors across all domains  
+- eliminates redundancy and instability  
+- improves model generalization  
+- enhances interpretability  
+- maintains temporal structure  
+- reflects meaningful tract‑level variation  
+
+The resulting feature set is both analytically robust and operationally practical, supporting clear interpretability and reliable model performance.
+
+---
+
+## **5.1 Modeling Objectives**
 
 The modeling pipeline is designed to:
 
@@ -367,7 +423,7 @@ This multi‑model strategy ensures that interpretability findings are robust ac
 
 ---
 
-## **4.2 Train/Test Split and Data Preparation**
+## **5.2 Train/Test Split and Data Preparation**
 
 ### **A. Cross‑Sectional Train/Test Split**
 
@@ -378,7 +434,7 @@ The split used:
 - `test_size = 0.2`  
 - `random_state = 42`  
 - No stratification (continuous target)  
-- No temporal splitting required  
+- No temporal splitting required
 
 ### **B. Feature Selection**
 
@@ -401,7 +457,7 @@ All missingness was handled upstream during feature engineering. No additional i
 
 ---
 
-## **4.3 Baseline Models (Ridge + ElasticNet)**
+## **5.3 Baseline Models (Ridge + ElasticNet)**
 
 Two linear baselines were included to test whether the reliability signal is primarily linear or sparse linear.
 
@@ -428,7 +484,7 @@ ElasticNet tests for sparse linear structure. Its weaker performance and converg
 
 ---
 
-## **4.4 Primary Model Families**
+## **5.4 Primary Model Families**
 
 Three nonlinear model families were used to capture complex relationships and provide complementary interpretability views.
 
@@ -474,7 +530,7 @@ GAM models smooth nonlinear effects without interactions, providing highly inter
 
 ---
 
-## **4.5 Hyperparameters**
+## **5.5 Hyperparameters**
 
 Hyperparameters were **not tuned**. All models use the defaults or minimal values specified in the modeling code.
 
@@ -487,7 +543,7 @@ Hyperparameters were **not tuned**. All models use the defaults or minimal value
 
 ---
 
-## **4.6 Model Training**
+## **5.6 Model Training**
 
 ### **A. Random Forest**
 - Parallel tree construction  
@@ -510,7 +566,7 @@ Hyperparameters were **not tuned**. All models use the defaults or minimal value
 
 ---
 
-## **4.7 Model Evaluation**
+## **5.7 Model Evaluation**
 
 ### **Metrics**
 - Mean Absolute Error (MAE)  
@@ -526,7 +582,7 @@ Hyperparameters were **not tuned**. All models use the defaults or minimal value
 
 ---
 
-## **4.8 Interpretability Hooks**
+## **5.8 Interpretability Hooks**
 
 Each model family provides distinct interpretability artifacts:
 
@@ -550,24 +606,25 @@ These artifacts form the foundation of the interpretability synthesis in Section
 
 ---
 
-## **4.9 Summary**
+## **5.9 Modeling Pipeline Summary**
 
 The modeling pipeline combines linear baselines, nonlinear ensembles, and additive models to provide a comprehensive interpretability framework. Hyperparameters are intentionally minimal, the train/test split reflects the cross‑sectional nature of the problem, and evaluation metrics confirm that nonlinear models are necessary to capture the structure of tract‑level reliability. This pipeline provides a robust foundation for the interpretability analysis that follows.
 
+---
 
-# **5. Interpretability Framework**
+# **6. Interpretability Framework**
 
 The modeling pipeline uses multiple interpretability methods to understand how structural, socioeconomic, demographic, geographic, and environmental features influence tract‑level broadband reliability. Because reliability is shaped by nonlinear and heterogeneous relationships, no single interpretability tool is sufficient. This section briefly outlines the methods used and the role each plays in the analysis.
 
 ---
 
-## **5.1 Purpose**
+## **6.1 Purpose**
 
 The goal of interpretability in this project is to identify and characterize the drivers of tract‑level reliability. Predictive accuracy is secondary; the primary objective is to understand *how* features influence the engineered reliability index and whether those effects are linear, nonlinear, monotonic, thresholded, or interaction‑driven.
 
 ---
 
-## **5.2 Methods Used**
+## **6.2 Methods Used**
 
 Four interpretability families were applied across the modeling pipeline:
 
@@ -580,42 +637,43 @@ Each method provides a distinct perspective, and together they form a coherent i
 
 ---
 
-## **5.3 Permutation Importance**
+## **6.3 Permutation Importance**
 
 Permutation importance measures how much model error increases when a feature is randomly permuted. It provides a stable, model‑specific ranking of global importance for RF and HGB. It does not show directionality or effect shape, but it reliably identifies which features matter most.
 
 ---
 
-## **5.4 Partial Dependence Plots (PDP)**
+## **6.4 Partial Dependence Plots (PDP)**
 
 PDPs show the average marginal effect of a feature on reliability. They reveal whether effects are monotonic, nonlinear, or thresholded. PDPs are particularly useful for understanding the shape of tract_area’s influence and other structural features. They do not capture tract‑specific variation but provide clear global patterns.
 
 ---
 
-## **5.5 GAM Splines and Significance**
+## **6.5 GAM Splines and Significance**
 
 The GAM provides smooth, additive effect curves for each feature and statistical significance tests. It cannot model interactions, but it offers a clean view of each feature’s standalone nonlinear contribution. GAM splines serve as a sanity check against the more flexible tree‑based models.
 
 ---
 
-## **5.6 SHAP Values**
+## **6.6 SHAP Values**
 
 SHAP values provide tract‑level explanations and global distributional patterns. They capture nonlinearities and interactions and show both the magnitude and direction of each feature’s contribution. SHAP beeswarm plots are the most detailed interpretability artifact in the project and play a central role in the synthesis that follows.
 
 ---
 
-## **5.7 Why Multiple Methods**
+## **6.7 Why Multiple Methods**
 
 Using multiple interpretability tools reduces the risk of model‑specific artifacts and ensures that conclusions are robust. RF and HGB capture nonlinearities and interactions; GAM captures smooth additive effects; SHAP provides tract‑level contributions; permutation importance provides global rankings. Together, these methods create a comprehensive interpretability framework.
 
 ---
 
-## **5.8 Summary**
+## **6.8 Interpretability Framework Summary**
 
 This project uses a multi‑method interpretability framework to understand the drivers of tract‑level broadband reliability. Each method contributes a different perspective, and their combined insights form the foundation for the cross‑model interpretability synthesis presented in Section 6.
 
+---
 
-# Section 6 — Interpretability Analysis
+# **7. Interpretability Analysis**
 
 This section synthesizes all interpretability artifacts generated across the Random Forest (RF), Histogram‑Based Gradient Boosting (HGB), and Generalized Additive Model (GAM) pipelines. The analysis integrates permutation importance, SHAP ranking, SHAP beeswarm distributions, PDP 1D curves, GAM p‑value ranking, and GAM effect plots. Together, these artifacts reveal the structural drivers of tract‑level broadband reliability and the nonlinear relationships governing the model’s behavior.
 
@@ -623,9 +681,9 @@ The interpretability stack yields a coherent, multi‑model narrative: **tract g
 
 ---
 
-## 6.1 Cross‑Model Feature Importance
+## **7.1 Cross‑Model Feature Importance**
 
-### Dominant Driver: Tract Geometry
+### **Dominant Driver: Tract Geometry**
 Across RF permutation importance, HGB permutation importance, SHAP ranking, PDP curves, and GAM significance, **tract_area** is the single strongest predictor of reliability. It consistently outranks all other features by large margins:
 
 - RF: highest importance  
@@ -636,16 +694,16 @@ Across RF permutation importance, HGB permutation importance, SHAP ranking, PDP 
 
 This unanimity indicates a true structural relationship: **smaller tracts exhibit higher reliability**, while **larger tracts show sharp, thresholded declines** and then persistently low reliability.
 
-### Strong Socioeconomic Drivers: Education
+### **Strong Socioeconomic Drivers: Education**
 Education features form the second‑strongest cluster:
 
-- **pct_bachelors**: monotonic positive effect across all models  
+- **edu_bachelors**: monotonic positive effect across all models  
 - **pct_masters / edu_masters**: positive with diminishing returns  
 - **pct_high_school**: negative, with two major downward thresholds  
 
 Education is the most stable socioeconomic predictor in the entire pipeline. Its directionality and functional form remain consistent across RF, HGB, SHAP, PDP, and GAM.
 
-### Moderate Nonlinear Drivers: Demographics
+### **Moderate Nonlinear Drivers: Demographics**
 Demographic variables show meaningful but nonlinear effects:
 
 - **pct_black**: negative at high values, positive at low values; highly nonlinear  
@@ -655,7 +713,7 @@ Demographic variables show meaningful but nonlinear effects:
 
 These effects are real but mediated by education, housing, and tract geometry.
 
-### Built Environment Drivers
+### **Built Environment Drivers**
 Housing‑related features show moderate influence:
 
 - **housing_structure_universe**: nonlinear positive  
@@ -665,7 +723,7 @@ Housing‑related features show moderate influence:
 
 GAM elevates these features more strongly than RF/HGB, revealing smooth housing effects that tree models partially obscure.
 
-### Geography, Weather, and Economics
+### **Geography, Weather, and Economics**
 These features contribute weak but structured nonlinear effects:
 
 - **centroid_lon**, **centroid_lat**, **elevation_m**: modest nonlinear geographic patterns  
@@ -676,12 +734,12 @@ They are not primary drivers but act as subtle modifiers.
 
 ---
 
-## 6.2 SHAP Beeswarm Directionality and Heterogeneity
+## **7.2 SHAP Beeswarm Directionality and Heterogeneity**
 
 The SHAP beeswarm plot reveals directionality, heterogeneity, and interaction hints:
 
 - **tract_area**: high values produce large negative SHAP contributions (–20 to –10); low values produce wide positive contributions (up to +40).  
-- **pct_bachelors**: tight monotonic positive band (–5 to +15).  
+- **edu_bachelors**: tight monotonic positive band (–5 to +15).  
 - **pct_masters**: similar pattern, smaller range (–5 to +5).  
 - **pct_black**: high values cluster left (negative), low values cluster right (positive).  
 - **housing_structure_universe**: high values → positive; low values → negative.  
@@ -692,34 +750,34 @@ The beeswarm confirms the directionality and magnitude patterns seen in permutat
 
 ---
 
-## 6.3 PDP 1D Functional Forms
+## **7.3 PDP 1D Functional Forms**
 
 PDP curves reveal the shape of each relationship:
 
-### tract_area
+### **tract_area**
 - Strong monotonic decline  
 - Multiple sharp thresholds  
 - High heterogeneity  
 - Identical across RF and HGB  
 
-### pct_bachelors
+### **edu_bachelors**
 - Smooth monotonic rise  
 - Stable across models  
 
-### pct_masters
+### **pct_masters**
 - Nonlinear rise  
 - Diminishing returns  
 - Plateau at high values  
 
-### pct_black
+### **pct_black**
 - Complex nonlinear shape  
 - Early positive bump, mid‑range decline, late collapse  
 - Strong interactions  
 
-### housing_structure_universe
+### **housing_structure_universe**
 - Smooth wave‑like positive trend  
 
-### pct_high_school
+### **pct_high_school**
 - Two major downward steps  
 - Strong negative directionality  
 
@@ -727,11 +785,11 @@ These PDP curves confirm the nonlinear structure hinted by SHAP.
 
 ---
 
-## 6.4 GAM Significance and Smooth Effects
+## **7.4 GAM Significance and Smooth Effects**
 
 GAM p‑value ranking elevates features with statistically significant smooth effects, including:
 
-- **pct_bachelors**  
+- **edu_bachelors**  
 - **pct_housing_occupied**  
 - **pct_limited_english**  
 - **pct_single_family**  
@@ -754,15 +812,15 @@ GAM confirms the nonlinear structure across demographic, housing, geographic, an
 
 ---
 
-## 6.5 Cross‑Model Synthesis
+## **7.5 Cross‑Model Synthesis**
 
 Integrating RF, HGB, SHAP, PDP, and GAM yields the following hierarchy:
 
-### Strong Drivers
+### **Strong Drivers**
 - tract_area  
-- pct_bachelors  
+- edu_bachelors  
 
-### Moderate Drivers
+### **Moderate Drivers**
 - pct_masters  
 - pct_black  
 - pct_high_school  
@@ -771,13 +829,13 @@ Integrating RF, HGB, SHAP, PDP, and GAM yields the following hierarchy:
 - pct_housing_occupied  
 - centroid_lon  
 
-### Weak but Real Drivers
+### **Weak but Real Drivers**
 - median_home_value  
 - weather features  
 - centroid_lat  
 - tract_compactness  
 
-### Noise
+### **Noise**
 - most housing unit counts  
 - limited English child buckets  
 - disability buckets  
@@ -788,11 +846,11 @@ This hierarchy is validated across all interpretability artifacts.
 
 ---
 
-## 6.6 Directionality Summary
+## **7.6 Directionality Summary**
 
-### Increases Reliability
+### **Increases Reliability**
 - Smaller tract_area  
-- Higher pct_bachelors  
+- Higher edu_bachelors  
 - Higher pct_masters (plateau at high values)  
 - Higher housing_structure_universe  
 - Higher pct_housing_occupied  
@@ -800,13 +858,13 @@ This hierarchy is validated across all interpretability artifacts.
 - Low pct_high_school  
 - Low pct_65_plus  
 
-### Decreases Reliability
+### **Decreases Reliability**
 - Larger tract_area  
 - High pct_black  
 - High pct_high_school  
 - Mid‑range pct_65_plus  
 
-### Nonlinear / U‑Shaped / Thresholded
+### **Nonlinear / U‑Shaped / Thresholded**
 - pct_black  
 - pct_65_plus  
 - pct_single_family  
@@ -816,7 +874,7 @@ This hierarchy is validated across all interpretability artifacts.
 
 ---
 
-## 6.7 Non‑Obvious Insights
+## **7.7 Non‑Obvious Insights**
 
 The interpretability stack reveals several deep structural insights:
 
@@ -833,12 +891,13 @@ The interpretability stack reveals several deep structural insights:
 
 ---
 
-# Section 6 Summary
+## **7.8 Interpretability Analysis Summary**
 
-Tract‑level broadband reliability is governed by a nonlinear interplay between tract geometry, socioeconomic factors, demographic composition, housing structure, geography, weather, and economic conditions. The strongest and most stable drivers are **tract_area** and **pct_bachelors**, followed by nonlinear demographic and housing effects. Weather, geography, and economics contribute weak but structured signals. The reliability landscape is fundamentally nonlinear, validating the use of RF, HGB, and GAM.
+Tract‑level broadband reliability is governed by a nonlinear interplay between tract geometry, socioeconomic factors, demographic composition, housing structure, geography, weather, and economic conditions. The strongest and most stable drivers are **tract_area** and **edu_bachelors**, followed by nonlinear demographic and housing effects. Weather, geography, and economics contribute weak but structured signals. The reliability landscape is fundamentally nonlinear, validating the use of RF, HGB, and GAM.
 
+---
 
-# Section 7 — Actionable Business Insights
+# **8. Actionable Business Insights**
 
 This section translates the interpretability findings into directly actionable business insights. Every recommendation is derived strictly from the structural relationships uncovered in Section 6 — tract geometry, education, demographics, housing composition, geography, weather, and economic variables. Nothing here goes beyond what the model actually revealed.
 
@@ -846,11 +905,11 @@ The goal of this section is to show how the interpretability results can inform 
 
 ---
 
-## 7.1 Tract Geometry: Operational Strategies for Large‑Area Tracts
+## **8.1 Tract Geometry: Operational Strategies for Large‑Area Tracts**
 
 **Interpretability basis:** tract_area is the dominant structural driver of reliability, with sharp thresholded declines as tract size increases.
 
-### Initial Confirmation Phase  
+### **Initial Confirmation Phase**
 Before investing in infrastructure or operational changes, a business should first **confirm whether the apparent underperformance in large tracts reflects true reliability issues or simply uncertainty caused by low sampling density**. The engineered reliability_index captures this uncertainty, and the interpretability stack shows that large tracts consistently exhibit lower reliability scores, but confirmation is required before committing resources.
 
 **Pre‑investment confirmation actions:**
@@ -869,7 +928,7 @@ Before investing in infrastructure or operational changes, a business should fir
 
 Only **after** this confirmation phase should the company proceed with the operational and infrastructure actions listed below.
 
-### Post‑Confirmation Operational Actions
+### **Post‑Confirmation Operational Actions**
 
 - **Segment large tracts into operational sub‑regions.**  
   The model’s thresholds indicate that reliability drops sharply once tract_area exceeds certain breakpoints. Operational segmentation can reduce the “effective” tract size for planning and maintenance.
@@ -882,9 +941,9 @@ Only **after** this confirmation phase should the company proceed with the opera
 
 ---
 
-## 7.2 Education: Targeted Reliability Programs for Low‑Education Tracts
+## **8.2 Education: Targeted Reliability Programs for Low‑Education Tracts**
 
-**Interpretability basis:** pct_bachelors is the most stable socioeconomic predictor of reliability, with a clean monotonic positive relationship.
+**Interpretability basis:** edu_bachelors is the most stable socioeconomic predictor of reliability, with a clean monotonic positive relationship.
 
 **Actionable implications:**
 
@@ -895,11 +954,11 @@ Only **after** this confirmation phase should the company proceed with the opera
   Since reliability is structurally lower, these tracts represent high‑ROI upgrade targets.
 
 - **Use education as a stable segmentation variable.**  
-  Because pct_bachelors behaves consistently across all models, it is a reliable dimension for targeting operational programs.
+  Because edu_bachelors behaves consistently across all models, it is a reliable dimension for targeting operational programs.
 
 ---
 
-## 7.3 Demographics: Bundled Interventions for Nonlinear, Mediated Effects
+## 8.3 **Demographics: Bundled Interventions for Nonlinear, Mediated Effects**
 
 **Interpretability basis:** demographic variables matter, but their effects are nonlinear and mediated by education, housing, and tract geometry.
 
@@ -916,7 +975,7 @@ Only **after** this confirmation phase should the company proceed with the opera
 
 ---
 
-## 7.4 Built Environment: Infrastructure Planning Based on Housing Composition
+## **8.4 Built Environment: Infrastructure Planning Based on Housing Composition**
 
 **Interpretability basis:** housing variables show meaningful nonlinear effects, especially in GAM.
 
@@ -933,7 +992,7 @@ Only **after** this confirmation phase should the company proceed with the opera
 
 ---
 
-## 7.5 Geography: Incorporate Regional Nonlinear Patterns
+## **8.5 Geography: Incorporate Regional Nonlinear Patterns**
 
 **Interpretability basis:** centroid_lon, centroid_lat, and elevation_m contribute modest but consistent nonlinear effects.
 
@@ -947,7 +1006,7 @@ Only **after** this confirmation phase should the company proceed with the opera
 
 ---
 
-## 7.6 Weather: Secondary Modifiers for Reliability Risk
+## **8.6 Weather: Secondary Modifiers for Reliability Risk**
 
 **Interpretability basis:** weather variables show weak but real nonlinear effects.
 
@@ -961,7 +1020,7 @@ Only **after** this confirmation phase should the company proceed with the opera
 
 ---
 
-## 7.7 Economics: Focus on Extreme‑Value Tracts
+## **8.7 Economics: Focus on Extreme‑Value Tracts**
 
 **Interpretability basis:** economic variables matter only at extremes — not in the middle of the distribution.
 
@@ -975,7 +1034,7 @@ Only **after** this confirmation phase should the company proceed with the opera
 
 ---
 
-## 7.8 Summary of Actionable Insights
+## **8.8 Actionable Insights Summary**
 
 Across all interpretability layers, the model suggests:
 
@@ -988,14 +1047,15 @@ Across all interpretability layers, the model suggests:
 
 These insights translate the interpretability analysis into concrete operational strategies for improving tract‑level broadband reliability.
 
+---
 
-# Section 8 — Model Limitations
+# **9. Model Limitations**
 
 This section outlines the constraints and structural limitations of the modeling pipeline. These limitations arise from data availability, modeling choices, feature engineering constraints, and the interpretability artifacts reviewed in Section 6. They define the boundaries of what the model can reliably infer and highlight areas where future iterations can meaningfully improve performance and stability.
 
 ---
 
-## 8.1 No Hyperparameter Tuning Performed
+## **9.1 No Hyperparameter Tuning Performed**
 
 Across Random Forest (RF), Histogram‑Based Gradient Boosting (HGB), and Generalized Additive Models (GAM), all models were trained using default or minimally adjusted parameters. This means:
 
@@ -1007,7 +1067,21 @@ As a result, model performance and stability may not reflect the best achievable
 
 ---
 
-## 8.2 Missing Broadband Hardware Data
+## **9.2 Missing Provider Competition Data**
+
+The model does not include tract‑level provider competition indicators such as:
+
+- number of broadband providers serving the tract  
+- provider market share  
+- presence of competing fiber or cable operators  
+- competitive intensity or pricing pressure  
+- historical competitive entry or exit  
+
+Provider competition can influence where and when companies invest in infrastructure upgrades, maintenance cycles, and service quality improvements. Without these variables, the model cannot capture how competitive dynamics may shape reliability outcomes or explain tract‑level variation driven by market behavior rather than structural or demographic factors.
+
+---
+
+## **9.3 Missing Broadband Hardware Data**
 
 The model does not include tract‑level broadband infrastructure variables such as:
 
@@ -1022,7 +1096,7 @@ Hardware is a primary driver of real‑world reliability. Its absence means the 
 
 ---
 
-## 8.3 Weather Data Resolution Limitations
+## **9.4 Weather Data Resolution Limitations**
 
 Weather features were engineered from hourly buckets and aggregated across long periods, introducing constraints:
 
@@ -1036,7 +1110,7 @@ Interpretability artifacts consistently showed weather effects were weak and osc
 
 ---
 
-## 8.4 ACS Sampling Noise and Tract‑Level Sparsity
+## **9.5 ACS Sampling Noise and Tract‑Level Sparsity**
 
 ACS demographic and socioeconomic variables contain sampling noise, especially in:
 
@@ -1055,7 +1129,7 @@ These issues limit the precision of demographic and socioeconomic signals.
 
 ---
 
-## 8.5 Reliability Index Still Contains Uncertainty
+## **9.6 Reliability Index Still Contains Uncertainty**
 
 The engineered reliability_index composite reflects sampling density and measurement quality, but it does not eliminate uncertainty in:
 
@@ -1067,7 +1141,7 @@ This limitation directly motivated the confirmation phase added to Section 7.1.
 
 ---
 
-## 8.6 No Spatial Modeling Included
+## **9.7 No Spatial Modeling Included**
 
 The model does not incorporate spatial dependence or spatial autocorrelation:
 
@@ -1086,7 +1160,7 @@ This limits the model’s ability to capture:
 
 ---
 
-## 8.7 Interaction Effects Not Explicitly Modeled
+## **9.8 Interaction Effects Not Explicitly Modeled**
 
 RF and HGB capture interactions implicitly, but:
 
@@ -1099,7 +1173,7 @@ This limits the model’s ability to quantify interaction strength or isolate co
 
 ---
 
-## 8.8 Economic Variables Are Weak and Noisy
+## **9.9 Economic Variables Are Weak and Noisy**
 
 Economic variables (median_home_value, median_gross_rent) show:
 
@@ -1112,7 +1186,7 @@ This reflects both limited predictive power and measurement noise due to tract�
 
 ---
 
-## 8.9 Housing Unit Count Variables Are Mostly Noise
+## **9.10 Housing Unit Count Variables Are Mostly Noise**
 
 Many housing unit count variables (e.g., housing_3_4_units, housing_20_49_unit) exhibit:
 
@@ -1125,11 +1199,12 @@ These features are not structurally meaningful predictors, may introduce noise, 
 
 ---
 
-# Summary of Model Limitations
+## **9.11 Model Limitations Summary**
 
 The model is constrained by:
 
 - lack of hyperparameter tuning  
+- missing provider competition data  
 - missing broadband hardware data  
 - coarse weather resolution  
 - ACS sampling noise  
@@ -1137,20 +1212,20 @@ The model is constrained by:
 - absence of spatial modeling  
 - lack of explicit interaction modeling  
 - weak/noisy economic variables  
-- noisy housing unit count variables  
 
 These limitations define the boundaries of the current modeling iteration and motivate the enhancements outlined in the next section.
 
+---
 
-# Section 9 — Future Work
+# **10. Future Work**
 
 The interpretability analysis and model limitations highlight several clear avenues for improving model performance, stability, and explanatory power in future iterations. These enhancements fall into three categories: modeling improvements, feature engineering, and data enrichment.
 
 ---
 
-## 9.1 Modeling Improvements
+## **10.1 Modeling Improvements**
 
-### Hyperparameter Tuning for RF, HGB, and GAM
+### **Hyperparameter Tuning for RF, HGB, and GAM**
 None of the models in the current pipeline were tuned. Future iterations should include:
 
 - RF grid search for depth, leaf size, and split criteria  
@@ -1159,7 +1234,7 @@ None of the models in the current pipeline were tuned. Future iterations should 
 
 This will improve stability, reduce noise, and sharpen interpretability artifacts.
 
-### Spatial Modeling
+### **Spatial Modeling**
 Reliability exhibits geographic structure. Future work should explore:
 
 - spatial lag models  
@@ -1171,9 +1246,9 @@ This will capture regional infrastructure patterns and spatial spillover effects
 
 ---
 
-## 9.2 Feature Engineering Enhancements
+## **10.2 Feature Engineering Enhancements**
 
-### Interaction Terms
+### **Interaction Terms**
 RF and HGB capture interactions implicitly, but future work should explicitly engineer:
 
 - tract_area × education  
@@ -1184,7 +1259,7 @@ RF and HGB capture interactions implicitly, but future work should explicitly en
 
 These interactions were strongly hinted by SHAP heterogeneity, PDP shapes, and GAM nonlinearities.
 
-### PDP 2D Interaction Surfaces
+### **PDP 2D Interaction Surfaces**
 The original interpretability plan included PDP 2D but deferred it. Future work should:
 
 - generate 2D surfaces for top interaction pairs  
@@ -1194,7 +1269,7 @@ The original interpretability plan included PDP 2D but deferred it. Future work 
 
 This will complete the interpretability stack.
 
-### Reliability Index Refinements
+### **Reliability Index Refinements**
 The reliability_index composite captures sampling uncertainty but can be strengthened using **existing data already present in the pipeline**, such as:
 
 - **tests per tile** (higher density → higher confidence)  
@@ -1207,9 +1282,9 @@ These refinements would increase confidence in reliability_index values without 
 
 ---
 
-## 9.3 Data Enrichment
+## **10.3 Data Enrichment**
 
-### Fixed Broadband Hardware Data
+### **Fixed Broadband Hardware Data**
 The most important missing feature class is tract‑level infrastructure data. Future work should incorporate:
 
 - node density  
@@ -1228,7 +1303,26 @@ If unavailable, these can be engineered from:
 
 Hardware data will significantly improve predictive power and reduce reliance on indirect proxies.
 
-### Weather Resolution Improvements (Conditional)
+### **Provider Competition Data**
+The model also lacks tract‑level provider competition indicators, which can meaningfully influence where and when companies invest in reliability improvements. Future work should incorporate:
+
+- number of providers serving each tract  
+- provider market share  
+- competitive intensity  
+- presence of fiber or cable competitors  
+- historical competitive entry or exit  
+
+Competition data can be sourced or inferred from:
+
+- FCC Form 477 and Broadband Data Collection filings  
+- public ISP coverage maps  
+- market share estimates  
+- competitive overlap analyses  
+
+Including competition variables will help distinguish reliability variation driven by market dynamics from variation driven by infrastructure, demographics, or geography.
+
+
+### **Weather Resolution Improvements (Conditional)**
 Weather resolution can only be improved if:
 
 - **Ookla begins reporting test data at finer temporal resolution**, or  
@@ -1242,7 +1336,7 @@ If either becomes possible, future work should incorporate:
 
 This would strengthen weather‑related nonlinear effects, but only if the underlying test‑data resolution improves.
 
-### Improved ACS and Economic Granularity
+### **Improved ACS and Economic Granularity**
 Future work should explore:
 
 - multi‑year ACS smoothing  
@@ -1253,9 +1347,9 @@ This will reduce sampling noise and improve demographic/economic signal quality.
 
 ---
 
-## 9.4 Additional Feature Classes
+## **10.4 Additional Feature Classes**
 
-### Device‑Level Reliability Features
+### **Device‑Level Reliability Features**
 If available, future work should incorporate:
 
 - device type  
@@ -1263,9 +1357,9 @@ If available, future work should incorporate:
 - device firmware version  
 - device reliability history  
 
-These features can significantly improve tract‑level reliability modeling.
+These features can significantly improve tract‑level reliability modeling by capturing variation at the measurement source rather than solely at the tract level.
 
-### Network Load and Utilization Features
+### **Network Load and Utilization Features**
 If accessible, future work should include:
 
 - peak load  
@@ -1273,11 +1367,35 @@ If accessible, future work should include:
 - congestion indicators  
 - utilization ratios  
 
-These features capture real‑time stress on infrastructure.
+These features capture real‑time stress on infrastructure and can help distinguish reliability degradation caused by network saturation from degradation caused by structural or demographic factors.
+
+### **Broadband Hardware Features**
+Beyond device‑level attributes, tract‑level broadband hardware characteristics represent a critical missing feature class. Future work should incorporate:
+
+- node density  
+- cabinet age  
+- equipment type  
+- distribution topology  
+- maintenance history  
+- upgrade cycles  
+
+These variables directly influence service stability and would allow the model to separate infrastructure‑driven reliability variation from sampling‑driven or demographic variation.
+
+### **Provider Competition Features**
+Provider competition can meaningfully influence where and when companies invest in reliability improvements. Future work should incorporate tract‑level competition indicators such as:
+
+- number of providers serving each tract  
+- provider market share  
+- competitive intensity  
+- presence of fiber or cable competitors  
+- historical competitive entry or exit  
+
+These features would help the model capture market‑driven reliability variation and improve its ability to explain differences in investment patterns across tracts.
+
 
 ---
 
-# Summary of Future Work
+## **10.5 Future Work Summary**
 
 Future iterations should focus on:
 
@@ -1286,15 +1404,17 @@ Future iterations should focus on:
 - engineering explicit interaction terms  
 - generating PDP 2D surfaces  
 - refining the reliability_index using existing data (tests per tile, device count, tile count, variance, consistency)  
-- incorporating broadband hardware data  
+- incorporating broadband hardware data
+- incorporating provider competition data  
 - improving weather resolution only if test‑data resolution increases  
 - improving ACS and economic granularity  
 - adding device‑level and network‑load features  
 
 These enhancements will strengthen predictive power, reduce noise, and deepen interpretability.
 
+---
 
-# Appendix — Technical Evidence and Supporting Artifacts
+# **Appendix — Technical Evidence and Supporting Artifacts**
 
 This appendix provides relevant quantitative and visual evidence supporting the modeling, interpretability, and business‑insight conclusions presented in Sections 6–9. It includes model evaluation metrics, selected interpretability artifacts, key tables summarizing feature behavior across models, and technical notes documenting the reliability_index composite and tract‑level aggregation logic.
 
@@ -1302,62 +1422,62 @@ The goal of this appendix is to make the report fully transparent, reproducible,
 
 ---
 
-# A. Model Evaluation Results
+## **A. Model Evaluation Results**
 
 This section presents the evaluation metrics recorded at training time for each model. These metrics form the quantitative foundation for the interpretability analysis and justify the inclusion of all models in the interpretability stack.
 
-## **A.1 Elastic Net Evaluation Metrics**
-- RMSE: *[402.1776]*  
-- MAE: *[15.3816]*  
-- R²: *[0.3486]*
-- Cross validated RMSE mean: *[389.2068]*  
-- Cross validated MAE mean: *[15.2556]*  
-- Cross validated R² mean: *[0.3630]*  
+### **A.1 Elastic Net Evaluation Metrics**
+- RMSE: *402.1776*  
+- MAE: *15.3816*  
+- R²: *0.3486*
+- Cross validated RMSE mean: *389.2068*  
+- Cross validated MAE mean: *15.2556*  
+- Cross validated R² mean: *0.3630*  
 
-## **A.2 Ridge Evaluation Metrics**
-- RMSE: *[357.2950]*  
-- MAE: *[14.0846]*  
-- R²: *[0.4213]*  
-- Cross validated RMSE mean: *[347.0324]*  
-- Cross validated MAE mean: *[14.0618]*  
-- Cross validated R² mean: *[0.4323]*  
+### **A.2 Ridge Evaluation Metrics**
+- RMSE: *357.2950*  
+- MAE: *14.0846*  
+- R²: *0.4213*  
+- Cross validated RMSE mean: *347.0324*  
+- Cross validated MAE mean: *14.0618*  
+- Cross validated R² mean: *0.4323*  
 
-## **A.3 Random Forest Evaluation Metrics**
-- RMSE: *[227.9612]*  
-- MAE: *[10.3029]*  
-- R²: *[0.6308]*
-- Cross validated RMSE mean: *[222.6212]*  
-- Cross validated MAE mean: *[10.2267]*  
-- Cross validated R² mean: *[0.6357]*    
+### **A.3 Random Forest Evaluation Metrics**
+- RMSE: *227.9612*  
+- MAE: *10.3029*  
+- R²: *0.6308*
+- Cross validated RMSE mean: *222.6212*  
+- Cross validated MAE mean: *10.2267*  
+- Cross validated R² mean: *0.6357*    
 
-## **A.4 Histogram‑Based Gradient Boosting Evaluation Metrics**
-- RMSE: *[239.3959]*  
-- MAE: *[10.4840]*  
-- R²: *[0.6123]*
-- Cross validated RMSE mean: *[229.4578]*  
-- Cross validated MAE mean: *[10.3433]*  
-- Cross validated R² mean: *[0.6247]*    
+### **A.4 Histogram‑Based Gradient Boosting Evaluation Metrics**
+- RMSE: *239.3959*  
+- MAE: *10.4840*  
+- R²: *0.6123*
+- Cross validated RMSE mean: *229.4578*  
+- Cross validated MAE mean: *10.3433*  
+- Cross validated R² mean: *0.6247*    
 
-## **A.5 Generalized Additive Model Evaluation Metrics**
-- RMSE: *[278.8628]*  
-- MAE: *[12.2129]*  
-- R²: *[0.5483]*
-- Cross validated RMSE mean: *[275.7335]*  
-- Cross validated MAE mean: *[12.1980]*  
-- Cross validated R² mean: *[0.5488]*    
+### **A.5 Generalized Additive Model Evaluation Metrics**
+- RMSE: *278.8628*  
+- MAE: *12.2129*  
+- R²: *0.5483*
+- Cross validated RMSE mean: *275.7335*  
+- Cross validated MAE mean: *12.1980*  
+- Cross validated R² mean: *0.5488*    
 
-## **A.6 Model Comparison Summary**
+### **A.6 Model Comparison Summary**
 
 | Model                     | CV RMSE | CV MAE | CV R² |
 |---------------------------|--------------|-------------|------------|
-| Elastic Net               | *[389.2068]* | *[15.2556]* | *[0.3630]* |
-| Ridge                     | *[347.0324]* | *[14.0618]* | *[0.4323]* |
-| Random Forest             | *[222.6212]* | *[10.2267]* | *[0.6357]* |
-| Histogram‑Based GBM       | *[229.4578]* | *[10.3433]* | *[0.6247]* |
-| Generalized Additive Model| *[275.7335]* | *[12.1980]* | *[0.5488]* |
+| Elastic Net               | *389.2068* | *15.2556* | *0.3630* |
+| Ridge                     | *347.0324* | *14.0618* | *0.4323* |
+| Random Forest             | *222.6212* | *10.2267* | *0.6357* |
+| Histogram‑Based GBM       | *229.4578* | *10.3433* | *0.6247* |
+| Generalized Additive Model| *275.7335* | *12.1980* | *0.5488* |
 
 
-# A.7 Evaluation Metric Definitions
+### **A.7 Evaluation Metric Definitions**
 
 **Root Mean Squared Error (RMSE)**  
 RMSE measures the square root of the average squared difference between predicted and actual values. Because squaring amplifies larger errors, RMSE is sensitive to high‑magnitude mistakes and reflects how well a model avoids large deviations. Lower values indicate better predictive accuracy.
@@ -1368,9 +1488,7 @@ MAE measures the average absolute difference between predicted and actual values
 **R² (Coefficient of Determination)**  
 R² quantifies the proportion of variance in the target variable explained by the model. It ranges from 0 to 1 for models that outperform a baseline mean predictor. Higher values indicate better explanatory power and stronger alignment between predictions and observed outcomes.
 
----
-
-# A.8 Rationale for Metric Selection
+### **A.8 Rationale for Metric Selection**
 
 RMSE, MAE, and R² together provide a balanced and interpretable evaluation framework for tract‑level reliability prediction. RMSE is valuable because it penalizes large errors more heavily, making it sensitive to tracts where the model might significantly misestimate reliability. MAE complements RMSE by offering a more stable, outlier‑resistant measure of average error magnitude, ensuring that performance is not overstated by models that perform well overall but occasionally fail sharply. R² adds a variance‑based perspective, indicating how much of the underlying structure in reliability the model captures relative to a simple baseline.
 
@@ -1378,12 +1496,13 @@ Using these three metrics in combination allows for a multidimensional compariso
 
 ---
 
-# B. Key Interpretability Artifacts
+## **B. Key Interpretability Artifacts**
 
 This section includes a small, curated set of high‑impact plots directly referenced in the interpretability narrative and business insights. Each figure is accompanied by a short explanation of its relevance.
 
-## **B.1 SHAP Beeswarm (HGB)**  
-**Figure B1:** `![shap_beeswarm](modeling_outputs/tier1/hist_gradient_boosting/shap_beeswarm.png)`
+### **B.1 SHAP Beeswarm (HGB)**  
+**Figure B1:** 
+![SHAP Beeswarm](modeling_outputs/tier1/hist_gradient_boosting/shap_beeswarm.png)
 
 **Description:**  
 The SHAP beeswarm plot provides the most comprehensive view of global feature importance and directionality. It demonstrates:
@@ -1396,35 +1515,35 @@ This figure anchors the cross‑model interpretability synthesis in Section 6.
 
 ---
 
-## **B.2 PDP Artifacts (RF + HGB)**
+### **B.2 PDP Artifacts (RF + HGB)**
 
-### **Figure B2 — tract_area PDP**  
-`![pdp_tract_area](modeling_outputs/tier1/hist_gradient_boosting/pdp_tract_area.png)`
+#### **Figure B2 — tract_area PDP**  
+![pdp_tract_area](modeling_outputs/tier1/hist_gradient_boosting/pdp_tract_area.png)
 
 **Description:**  
 Shows the sharp, monotonic decline in reliability as tract_area increases.  
 This plot is the empirical foundation for the “geometry first” business insight in Section 7.1.
 
-### **Figure B3 — edu_bachelors PDP**  
-`![pdp_edu_bachelors](modeling_outputs/tier1/hist_gradient_boosting/pdp_edu_bachelors.png)`
+#### **Figure B3 — edu_bachelors PDP**  
+![pdp_edu_bachelors](modeling_outputs/tier1/hist_gradient_boosting/pdp_edu_bachelors.png)
 
 **Description:**  
-Shows a clean, monotonic positive relationship between pct_bachelors and reliability.  
+Shows a clean, monotonic positive relationship between edu_bachelors and reliability.  
 This plot supports the “education second” insight and demonstrates the stability of this feature across models.
 
 ---
 
-## **B.3 GAM Artifacts**
+### **B.3 GAM Artifacts**
 
-### **Figure B4 — pct_65_plus GAM Effect**  
-`![gam_pct_65_plus](modeling_outputs/tier2/gam_effects/gam_effect_pct_65_plus.png)`
+#### **Figure B4 — pct_65_plus GAM Effect**  
+![gam_pct_65_plus](modeling_outputs/tier2/gam_effects/gam_effect_pct_65_plus.png)
 
 **Description:**  
 Shows the U‑shaped reliability pattern for pct_65_plus, with mid‑range tracts exhibiting the lowest reliability.  
 This nonlinear structure motivated the targeted recommendations for elderly‑dense tracts.
 
-### **Figure B5 — housing_structure_universe GAM Effect**  
-`![gam_housing__3_4_unit](modeling_outputs/tier2/gam_effects/gam_effect_housing__3_4_unit.png)`
+#### **Figure B5 — housing_structure_universe GAM Effect**  
+![gam_housing__3_4_unit](modeling_outputs/tier2/gam_effects/gam_effect_housing__3_4_unit.png)
 
 **Description:**  
 Shows smooth, interpretable housing effects that tree models partially obscure.  
@@ -1432,11 +1551,11 @@ This figure supports the housing‑based insights in Section 7.4.
 
 ---
 
-# C. Tables
+## **C. Tables**
 
 These tables summarize the numeric evidence behind the interpretability hierarchy and reliability_index construction.
 
-## **C.1 Permutation Importance Table (RF + HGB)**
+### **C.1 Permutation Importance Table (RF + HGB)**
 
 | Feature               | RF Importance | HGB Importance |
 |-----------------------|---------------|----------------|
@@ -1451,22 +1570,22 @@ These tables summarize the numeric evidence behind the interpretability hierarch
 
 ---
 
-## **C.2 SHAP Mean |Value| Table**
+### **C.2 SHAP Mean |Value| Table**
 
-| Feature               | SHAP value| Rank |
+| Feature               | SHAP Value | Rank |
 |-----------------------|---------------------|
-| tract_area            | 11.628392097625905 | 1 |
-| edu_bachelors         | 2.675559329594726 | 2 |
-| pct_black             | 0.9712262472984158 | 3 |
-| pct_65_plus           | 0.41201995239291705 | 12 |
+| tract_area            | 11.628392097625905      | 1 |
+| edu_bachelors         | 2.675559329594726       | 2 |
+| pct_black             | 0.9712262472984158      | 3 |
+| pct_65_plus           | 0.41201995239291705     | 12 |
 | housing_structure_universe | 0.7936127382847619 | 6 |
-| median_home_value     | 0.5388257891651145 | 10 |
-| centroid_lon          | 0.6000531446343426 | 7 |
-| centroid_lat          | 0.3647383207491982 | 17 |
+| median_home_value     | 0.5388257891651145      | 10 |
+| centroid_lon          | 0.6000531446343426      | 7 |
+| centroid_lat          | 0.3647383207491982      | 17 |
 
 ---
 
-## **C.3 GAM Significance Table**
+### **C.3 GAM Significance Table**
 
 | Feature                     | p‑value | Significance |
 |-----------------------------|---------|--------------|
@@ -1483,9 +1602,9 @@ These tables summarize the numeric evidence behind the interpretability hierarch
 
 ---
 
-## **C.4 Reliability Index Component Summary**
+### **C.4 Reliability Index Component Summary**
 
-### **Component Score Inputs (Performance)**  
+#### **Component Score Inputs (Performance)**  
 Normalized via `norm_speed` and `norm_inverse_latency`:
 
 - download_median  
@@ -1497,7 +1616,7 @@ Normalized via `norm_speed` and `norm_inverse_latency`:
 - latency_p75  
 - latency_p90  
 
-### **Penalty Score Inputs (Degradation)**
+#### **Penalty Score Inputs (Degradation)**
 
 **Threshold flags:**
 - download_lt_25_flag  
@@ -1517,14 +1636,14 @@ Normalized via `norm_speed` and `norm_inverse_latency`:
 - download_range  
 - latency_range  
 
-### **Confidence Score Input (Sampling Confidence)**
+#### **Confidence Score Input (Sampling Confidence)**
 
 Derived solely from:
 - **tests_total**  
   via `norm_confidence(tests_total)`  
   → `log(tests_total + 1) / log(500)` clipped to [0, 1]
 
-### **Explicitly Excluded (Present in Dataset but Not Used in Index)**
+#### **Explicitly Excluded (Present in Dataset but Not Used in Index)**
 
 - devices_total  
 - devices_per_tile  
@@ -1535,9 +1654,9 @@ Derived solely from:
 
 ---
 
-# D. Methodological Notes
+## **D. Methodological Notes**
 
-## **D.1 Formal Definition of reliability_index**
+### **D.1 Formal Definition of reliability_index**
 
 
 
@@ -1555,7 +1674,7 @@ Where:
 
 ---
 
-## **D.2 Tile‑Level Aggregation Logic**
+### **D.2 Tile‑Level Aggregation Logic**
 
 Tile‑level Ookla measurements are aggregated to tract‑quarter using:
 
@@ -1569,7 +1688,7 @@ This aggregation ensures tract‑level features reflect both central tendency an
 
 ---
 
-## **D.3 Key Filtering and Sanitization Rules**
+### **D.3 Key Filtering and Sanitization Rules**
 
 Sanitization includes:
 
@@ -1582,3 +1701,4 @@ Sanitization includes:
 - records for tracks having population_total > 0 & reliability_index not null were retained for modeling  
 
 These rules ensure tract‑level features are safe, consistent, and interpretable.
+
