@@ -163,10 +163,10 @@ These limitations are expanded in detail later in the report.
 
 Readers may explore the raw datasets used to construct the curated feature matrix:
 
-- **Ookla Open Data:** https://www.ookla.com/open-data  
-- **LCDv2 Climatological Data:** https://www.ncei.noaa.gov/products/land-based-station/climate-data-online  
-- **ACS 5‑Year Estimates:** https://www.census.gov/programs-surveys/acs  
-- **TIGER/Line Shapefiles:** https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html  
+- **Ookla Open Data:** https://github.com/teamookla/ookla-open-data 
+- **LCDv2 Climatological Data:** https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc:C01689 
+- **ACS 5‑Year Estimates:** https://www.census.gov/programs-surveys/acs/data.html 
+- **TIGER/Line Shapefiles:** https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html 
 
 ---
 
