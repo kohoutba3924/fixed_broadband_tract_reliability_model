@@ -1543,7 +1543,7 @@ Shows the U‑shaped reliability pattern for pct_65_plus, with mid‑range tract
 This nonlinear structure motivated the targeted recommendations for elderly‑dense tracts.
 
 #### **Figure B5 — housing_structure_universe GAM Effect**  
-![gam_housing__3_4_unit](modeling_outputs/tier2/gam_effects/gam_effect_housing__3_4_unit.png)
+![gam_housing__3_4_unit](modeling_outputs/tier2/gam_effects/gam_effect_housing_3_4_unit.png)
 
 **Description:**  
 Shows smooth, interpretable housing effects that tree models partially obscure.  
@@ -1572,16 +1572,16 @@ These tables summarize the numeric evidence behind the interpretability hierarch
 
 ### **C.2 SHAP Mean |Value| Table**
 
-| Feature               | SHAP Value | Rank |
-|-----------------------|---------------------|
-| tract_area            | 11.628392097625905      | 1 |
-| edu_bachelors         | 2.675559329594726       | 2 |
-| pct_black             | 0.9712262472984158      | 3 |
-| pct_65_plus           | 0.41201995239291705     | 12 |
-| housing_structure_universe | 0.7936127382847619 | 6 |
-| median_home_value     | 0.5388257891651145      | 10 |
-| centroid_lon          | 0.6000531446343426      | 7 |
-| centroid_lat          | 0.3647383207491982      | 17 |
+| Feature               | SHAP Value              | Rank |
+|-----------------------|-------------------------|------|
+| tract_area            | 11.628392097625905      | 1    |
+| edu_bachelors         | 2.675559329594726       | 2    |
+| pct_black             | 0.9712262472984158      | 3    |
+| pct_65_plus           | 0.41201995239291705     | 12   |
+| housing_structure_universe | 0.7936127382847619 | 6    |
+| median_home_value     | 0.5388257891651145      | 10   |
+| centroid_lon          | 0.6000531446343426      | 7    |
+| centroid_lat          | 0.3647383207491982      | 17   |
 
 ---
 
