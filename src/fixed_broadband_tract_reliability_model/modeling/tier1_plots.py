@@ -1,8 +1,13 @@
 import json
 import os
+import re
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import shap
 
 
 def _ensure_dir(path):
@@ -54,6 +59,15 @@ def plot_tier1_interpretability(
         plt.xlabel("Mean |SHAP value|")
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, "shap_feature_ranking.png"), dpi=300)
+        plt.close()
+
+        # ---------------------------------------------------------
+        # SHAP beeswarm plot
+        # ---------------------------------------------------------
+        plt.figure(figsize=(12, 8))
+        shap.plots.beeswarm(shap_values, max_display=20)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, "shap_beeswarm.png"), dpi=300)
         plt.close()
 
     else:
@@ -109,7 +123,7 @@ def plot_tier1_interpretability(
         plt.close()
 
     # ---------------------------------------------------------
-    # PDP 2D interactions (top-1)
+    # PDP 2D interactions (top-2)
     # ---------------------------------------------------------
     for pair_key, pd_data in pdp_2d.items():
         xs = pd_data["xs"]
@@ -118,10 +132,11 @@ def plot_tier1_interpretability(
 
         Xs, Ys = np.meshgrid(xs, ys)
 
+        safe_key = re.sub(r"[^A-Za-z0-9_]+", "_", pair_key)
         plt.figure(figsize=(8, 6))
         cp = plt.contourf(Xs, Ys, Z.T, cmap="viridis")
         plt.colorbar(cp)
-        plt.title(f"PDP Interaction: {pair_key.replace('__', ' × ')}")
+        plt.title(f"PDP Interaction: {safe_key}")
         plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, f"pdp_interaction_{pair_key}.png"))
+        plt.savefig(os.path.join(output_dir, f"pdp_interaction_{safe_key}.png"))
         plt.close()

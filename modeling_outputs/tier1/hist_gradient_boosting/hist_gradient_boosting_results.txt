@@ -1,5 +1,5 @@
 Model Results: hist_gradient_boosting
-Generated: 2026-10-04 16:44:43.360777
+Generated: 2026-10-06 09:01:14.854678
 
 mse: 239.3959
 mae: 10.4840

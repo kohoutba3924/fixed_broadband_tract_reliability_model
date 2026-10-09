@@ -15,7 +15,7 @@ def compute_tier1_interpretability(
     y_test,
     feature_names,
     top_n=10,
-    top_k_interactions=1,
+    top_k_interactions=2,
     shap_sample_size=2000,
 ):
 
@@ -46,23 +46,35 @@ def compute_tier1_interpretability(
             logger.info("SHAP using full X_train (no sampling).")
 
         logger.info("Computing SHAP values...")
+
+        # Create the explainer (this MUST come first)
         explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(X_shap)
+
+        # Compute raw SHAP values (NumPy array)
+        raw_shap = explainer.shap_values(X_shap)
         logger.info("SHAP values computed.")
 
+        # Compute mean absolute SHAP values (ranking)
         logger.info("Computing mean absolute SHAP values...")
-        mean_abs_shap = np.mean(np.abs(shap_values), axis=0)
+        mean_abs_shap = np.mean(np.abs(raw_shap), axis=0)
         logger.info("Mean absolute SHAP values computed.")
 
+        # Rank features
         logger.info("Ranking features by SHAP importance...")
         idx_all = np.argsort(mean_abs_shap)[::-1]
         full_ranking = {feature_names[i]: float(mean_abs_shap[i]) for i in idx_all}
         logger.info("Full SHAP ranking computed.")
 
+        # Select top-N features
         logger.info(f"Selecting top {top_n} SHAP features...")
         top_idx = idx_all[:top_n]
         top_features = [feature_names[i] for i in top_idx]
         logger.info(f"Top SHAP features: {top_features}")
+
+        # Create Explanation object for beeswarm
+        shap_values = shap.Explanation(
+            values=raw_shap, data=X_shap, feature_names=feature_names
+        )
 
     else:
         # ---------------------------------------------------------
@@ -101,7 +113,7 @@ def compute_tier1_interpretability(
     if not skip_shap:
         logger.info("Computing permutation importance (top-N)...")
         perm = permutation_importance(
-            model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1
+            model, X_test, y_test, n_repeats=10, random_state=42, n_jobs=1
         )
         perm_mean = perm.importances_mean
         perm_std = perm.importances_std

@@ -1,5 +1,5 @@
 Model Results: elasticnet
-Generated: 2026-10-04 16:19:38.228104
+Generated: 2026-10-06 08:33:10.295666
 
 mse: 402.1776
 mae: 15.3816

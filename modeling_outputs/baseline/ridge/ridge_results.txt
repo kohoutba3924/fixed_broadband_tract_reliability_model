@@ -1,5 +1,5 @@
 Model Results: ridge
-Generated: 2026-10-04 16:19:25.330845
+Generated: 2026-10-06 08:32:55.454292
 
 mse: 357.2950
 mae: 14.0846

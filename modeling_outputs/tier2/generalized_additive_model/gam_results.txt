@@ -1,5 +1,5 @@
 Model Results: gam
-Generated: 2026-10-04 16:49:40.076093
+Generated: 2026-10-06 09:04:55.685369
 
 mse: 278.8628
 mae: 12.2129
