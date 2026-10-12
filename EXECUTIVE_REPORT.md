@@ -103,7 +103,7 @@ Derived features in the final feature dataset originate from LCDv2, ACS, and Ook
 - extreme weather indicators  
 
 ### **ACS‑Derived**
-- edu_bachelors  
+- pct_bachelors  
 - pct_high_school  
 - pct_65_plus  
 - pct_unemployment  
@@ -152,7 +152,7 @@ A full discussion of data limitations appears in Section 9. Here, we briefly not
 
 - **Unavailable tract‑level broadband hardware data** (e.g., fiber node density, cabinet age, equipment type) limits the ability to distinguish infrastructure‑driven reliability variation from sampling‑driven uncertainty.  
 - **ACS sampling noise** introduces variance into demographic and socioeconomic features.  
-- **Weather data resolution** is coarse, relying on hourly buckets. This is a necessary for modeling given Ookla speed test data is available only at a quarterly temporal resolution.  
+- **Weather data resolution** is coarse, relying on hourly buckets. This is necessary for modeling given Ookla speed test data is available only at a quarterly temporal resolution.  
 - **Spatial aggregation** of Ookla tiles into tracts may smooth internal variation, especially in large rural tracts.
 
 These limitations are expanded in detail later in the report.
@@ -602,7 +602,7 @@ Each model family provides distinct interpretability artifacts:
 - Spline effect plots  
 - Feature significance (p‑values)
 
-These artifacts form the foundation of the interpretability synthesis in Sections 5 and 6.
+These artifacts form the foundation of the interpretability synthesis in Sections 6 and 7.
 
 ---
 
@@ -657,7 +657,7 @@ The GAM provides smooth, additive effect curves for each feature and statistical
 
 ## **6.6 SHAP Values**
 
-SHAP values provide tract‑level explanations and global distributional patterns. They capture nonlinearities and interactions and show both the magnitude and direction of each feature’s contribution. SHAP beeswarm plots are the most detailed interpretability artifact in the project and play a central role in the synthesis that follows.
+SHAP values provide tract‑level explanations and global distributional patterns. They capture nonlinearities and interactions and show both the magnitude and direction of each feature’s contribution. SHAP beeswarm plots are the most detailed interpretability artifact in the project and play a central role in the interpretability synthesis.
 
 ---
 
@@ -669,7 +669,7 @@ Using multiple interpretability tools reduces the risk of model‑specific artif
 
 ## **6.8 Interpretability Framework Summary**
 
-This project uses a multi‑method interpretability framework to understand the drivers of tract‑level broadband reliability. Each method contributes a different perspective, and their combined insights form the foundation for the cross‑model interpretability synthesis presented in Section 6.
+This project uses a multi‑method interpretability framework to understand the drivers of tract‑level broadband reliability. Each method contributes a different perspective, and their combined insights form the foundation for the cross‑model interpretability synthesis presented in Section 7.
 
 ---
 
@@ -899,7 +899,7 @@ Tract‑level broadband reliability is governed by a nonlinear interplay between
 
 # **8. Actionable Business Insights**
 
-This section translates the interpretability findings into directly actionable business insights. Every recommendation is derived strictly from the structural relationships uncovered in Section 6 — tract geometry, education, demographics, housing composition, geography, weather, and economic variables. Nothing here goes beyond what the model actually revealed.
+This section translates the interpretability findings directly into actionable business insights. Every recommendation is derived strictly from the structural relationships uncovered in Section 7 — tract geometry, education, demographics, housing composition, geography, weather, and economic variables. Nothing here goes beyond what the model actually revealed.
 
 The goal of this section is to show how the interpretability results can inform operational strategy, infrastructure planning, customer‑support targeting, and reliability‑improvement initiatives.
 
@@ -1173,32 +1173,6 @@ This limits the model’s ability to quantify interaction strength or isolate co
 
 ---
 
-## **9.9 Economic Variables Are Weak and Noisy**
-
-Economic variables (median_home_value, median_gross_rent) show:
-
-- weak SHAP values  
-- noisy PDP curves  
-- multi‑reversal GAM shapes  
-- inconsistent directionality  
-
-This reflects both limited predictive power and measurement noise due to tract‑level economic granularity.
-
----
-
-## **9.10 Housing Unit Count Variables Are Mostly Noise**
-
-Many housing unit count variables (e.g., housing_3_4_units, housing_20_49_unit) exhibit:
-
-- weak SHAP values  
-- unstable GAM splines  
-- noisy PDP curves  
-- inconsistent directionality  
-
-These features are not structurally meaningful predictors, may introduce noise, and could likely be removed in future modeling iterations.
-
----
-
 ## **9.11 Model Limitations Summary**
 
 The model is constrained by:
@@ -1207,11 +1181,10 @@ The model is constrained by:
 - missing provider competition data  
 - missing broadband hardware data  
 - coarse weather resolution  
-- ACS sampling noise  
+- sampling noise  
 - reliability_index uncertainty  
 - absence of spatial modeling  
-- lack of explicit interaction modeling  
-- weak/noisy economic variables  
+- lack of explicit interaction modeling   
 
 These limitations define the boundaries of the current modeling iteration and motivate the enhancements outlined in the next section.
 
@@ -1336,7 +1309,7 @@ If either becomes possible, future work should incorporate:
 
 This would strengthen weather‑related nonlinear effects, but only if the underlying test‑data resolution improves.
 
-### **Improved ACS and Economic Granularity**
+### **Improved ACS and Economic Patterns**
 Future work should explore:
 
 - multi‑year ACS smoothing  
@@ -1602,7 +1575,26 @@ These tables summarize the numeric evidence behind the interpretability hierarch
 
 ---
 
-### **C.4 Reliability Index Component Summary**
+## **D. Methodological Notes**
+
+### **D.1 Formal Definition of reliability_index**
+
+
+
+\[
+\text{index} = 100 \cdot \text{clip}( \text{component} - \text{penalty} + \text{confidence}, 0, 1 )
+\]
+
+
+
+Where:
+
+- **component** is the average of eight normalized performance metrics  
+- **penalty** is a normalized degradation score based on threshold flags, variability, and ranges  
+- **confidence** is a sampling‑density score derived solely from tests_total  
+
+
+### **D.2 Reliability Index Component Summary**
 
 #### **Component Score Inputs (Performance)**  
 Normalized via `norm_speed` and `norm_inverse_latency`:
@@ -1654,27 +1646,7 @@ Derived solely from:
 
 ---
 
-## **D. Methodological Notes**
-
-### **D.1 Formal Definition of reliability_index**
-
-
-
-\[
-\text{index} = 100 \cdot \text{clip}( \text{component} - \text{penalty} + \text{confidence}, 0, 1 )
-\]
-
-
-
-Where:
-
-- **component** is the average of eight normalized performance metrics  
-- **penalty** is a normalized degradation score based on threshold flags, variability, and ranges  
-- **confidence** is a sampling‑density score derived solely from tests_total  
-
----
-
-### **D.2 Tile‑Level Aggregation Logic**
+### **D.3 Tile‑Level Aggregation Logic**
 
 Tile‑level Ookla measurements are aggregated to tract‑quarter using:
 
@@ -1688,7 +1660,7 @@ This aggregation ensures tract‑level features reflect both central tendency an
 
 ---
 
-### **D.3 Key Filtering and Sanitization Rules**
+### **D.4 Key Filtering and Sanitization Rules**
 
 Sanitization includes:
 
